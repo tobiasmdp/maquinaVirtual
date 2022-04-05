@@ -14,7 +14,7 @@ int main()
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
     fscanf(arch,"%s",registro);
-    while(!feof(arch)){ 
+    while(!feof(arch)){
         instruccion=ADecimal(registro);
         //aux=instruccion>>28;
         /*if (aux&0xF0000000==0xF0000000){
@@ -33,17 +33,24 @@ int main()
 }
 
 
-int ADecimal(char arreglo []){//Transforma char en binario a decimal de 32 bits con signo
+int ADecimal(char arreglo []){//Transforma char en binario en complemento a 2 a decimal de 32 bits con signo
     int aux=0,i,N;
     N=strlen(arreglo)-1;
-    for (i=0;i<N;i++){
-        if(arreglo[N-i]=='1'){
-            aux+=pow(2,i);
-            printf("%d   %d  \n",i,aux);
+    if(arreglo[0]=='1'){
+        for(i=1;i<=N;i++){
+            if(arreglo[i]=='1')
+                arreglo[i]='0';
+            else
+                arreglo[i]='1';
         }
     }
-    if(arreglo[0]=='1')
-            aux*=-1;
+    for (i=0;i<N;i++){
+        if(arreglo[N-i]=='1')
+            aux+=pow(2,i);
+    }
+    if(arreglo[0]=='1'){
+        aux=aux*-1;
+        aux--;
+    }
     return aux;
 }
-
