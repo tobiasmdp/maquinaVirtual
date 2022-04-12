@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 #include "parser.h"
 #include "parser.c"
+
+#define nombreArchB "traducido.mv1"
+#define largoLinea 99
 
 int main(int argc, char const *argv[])
 {
@@ -14,13 +18,48 @@ int main(int argc, char const *argv[])
   printf("OPERAND 2: %s\n", parsed[3] ? parsed[3] : "");
   printf("  COMMENT: %s\n", parsed[4] ? parsed[4] : "");
 
-  freeline(parsed); */
-
+  freeline(parsed); 
+  
   printf("%d \n",argc);
   for (int i = 0; argc >= i ; i++ ){
-    printf("%s \n", argv[i]);
+    printf("%s \n", argv[1]);
   }
+
+  */
+
+
+
+  //formato de llamada: .\main.exe "nombrearchivo.asm" -o (flag o para printear, es opcional)
+
+  printf("hola");
+  char * nombreArchivo;
+  char * linea;
+  FILE * archT, *archB;
+  printf("hola2");
+
+
+  strcpy(nombreArchivo, argv[0]);
+  printf("hola");
+  if ((archT = fopen(nombreArchivo, "r")) != NULL ){
+    
+    archB = fopen(nombreArchB, "wb"); //creo el binario
+
+    while (!feof(archT)){ //comienza el ciclo de lectura linea por linea
+      fgets(linea, largoLinea, archB); //lee 1 linea de largo maximo 99
+      printf("hola");
+      printf("%s", linea);
+    }
+    
+    printf("entre");
+   
+    fclose(archT);
+  } //abro el archivo para lectura
+  else
+    printf("no encontre el archivo");
+
+
   
 
+  //tiene que escribir un binario formato ".mv1"
   return 0;
 }
