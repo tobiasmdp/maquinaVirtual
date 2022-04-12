@@ -1,2 +1,0 @@
-podes subir cualquier tipo de archivo 
-tambien podes hacer menciones, y despues verlas con una extension en vs code @tobiasmdp
