@@ -6,11 +6,11 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-        "args": [],
+        "args": [""],
         "stopAtEntry": false,
         "cwd": "${fileDirname}",
         "environment": [],
-        "externalConsole": false,
+        "externalConsole": true,
         "MIMode": "gdb",
         "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
         "setupCommands": [
@@ -18,6 +18,10 @@
             "description": "Enable pretty-printing for gdb",
             "text": "-enable-pretty-printing",
             "ignoreFailures": true
+          },
+          {
+            "description": "Fix pretty-printing for gdb",
+            "text": "set charset UTF-8"
           }
         ],
         "preLaunchTask": "C/C++: g++.exe build active file"

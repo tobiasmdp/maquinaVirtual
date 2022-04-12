@@ -31,26 +31,22 @@ int main(int argc, char const *argv[])
 
   //formato de llamada: .\main.exe "nombrearchivo.asm" -o (flag o para printear, es opcional)
 
-  printf("hola");
-  char * nombreArchivo;
-  char * linea;
+  char nombreArchivo[100] = "test.asm"; //borrar la asignacion, es solo para debugging <------------------------------------
+  char linea [largoLinea] = "";
   FILE * archT, *archB;
-  printf("hola2");
-
 
   strcpy(nombreArchivo, argv[0]);
-  printf("hola");
+  strcpy(nombreArchivo, "test.asm");
+
   if ((archT = fopen(nombreArchivo, "r")) != NULL ){
     
     archB = fopen(nombreArchB, "wb"); //creo el binario
 
     while (!feof(archT)){ //comienza el ciclo de lectura linea por linea
-      fgets(linea, largoLinea, archB); //lee 1 linea de largo maximo 99
-      printf("hola");
+      fgets(linea, largoLinea, archT); //lee 1 linea de largo maximo 99
       printf("%s", linea);
     }
     
-    printf("entre");
    
     fclose(archT);
   } //abro el archivo para lectura

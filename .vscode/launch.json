@@ -13,7 +13,7 @@
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [],
             "stopAtEntry": true,
-            "cwd": "${fileDirname}",
+            "cwd": "C:\\MinGw\\bin",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
