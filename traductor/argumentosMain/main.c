@@ -16,11 +16,13 @@ int main(int argc, char const *argv[])
 
   freeline(parsed); */
 
-  printf("%d \n",argc);
+  printf("%d \n",argc); 
+  //argc es la el largo del array argv +1, y argv se va a 
+  //formar en cada posicion por la cadena de chars separada por espacio
   for (int i = 0; argc >= i ; i++ ){
     printf("%s \n", argv[i]);
   }
-  
+  //si le pasas pepe el grillo, es largo es 4 e imprime pepe, el, grillo
 
   return 0;
 }
