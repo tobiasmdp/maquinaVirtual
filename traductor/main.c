@@ -9,16 +9,16 @@
 int main(int argc, char const *argv[])
 {
 
-/*   char **parsed = parseline("test: MOV AX, 123 ;inicializa AX"); // dise�ar todo en este main, a ir creando las clases y metodos
+/*   char **lineaParseada = parseline("test: MOV AX, 123 ;inicializa AX"); // dise�ar todo en este main, a ir creando las clases y metodos
   // robar la forma en q se crean modulos,, de la libreria parser
 
-  printf("    LABEL: %s\n", parsed[0] ? parsed[0] : "");
-  printf(" MNEMONIC: %s\n", parsed[1] ? parsed[1] : "");
-  printf("OPERAND 1: %s\n", parsed[2] ? parsed[2] : "");
-  printf("OPERAND 2: %s\n", parsed[3] ? parsed[3] : "");
-  printf("  COMMENT: %s\n", parsed[4] ? parsed[4] : "");
+  printf("    LABEL: %s\n", lineaParseada[0] ? lineaParseada[0] : "");
+  printf(" MNEMONIC: %s\n", lineaParseada[1] ? lineaParseada[1] : "");
+  printf("OPERAND 1: %s\n", lineaParseada[2] ? lineaParseada[2] : "");
+  printf("OPERAND 2: %s\n", lineaParseada[3] ? lineaParseada[3] : "");
+  printf("  COMMENT: %s\n", lineaParseada[4] ? lineaParseada[4] : "");
 
-  freeline(parsed); 
+  freeline(lineaParseada); 
   
   printf("%d \n",argc);
   for (int i = 0; argc >= i ; i++ ){
@@ -31,12 +31,12 @@ int main(int argc, char const *argv[])
 
   //formato de llamada: .\main.exe "nombrearchivo.asm" -o (flag o para printear, es opcional)
 
-  char nombreArchivo[100] = "test.asm"; //borrar la asignacion, es solo para debugging <------------------------------------
-  char linea [largoLinea] = "";
+  char nombreArchivo[100], linea [largoLinea], ** lineaParseada;
+
   FILE * archT, *archB;
 
   strcpy(nombreArchivo, argv[0]);
-  strcpy(nombreArchivo, "test.asm");
+  strcpy(nombreArchivo, "test.asm"); //borrar la asignacion, es solo para debugging <------------------------------------
 
   if ((archT = fopen(nombreArchivo, "r")) != NULL ){
     
@@ -45,8 +45,18 @@ int main(int argc, char const *argv[])
     while (!feof(archT)){ //comienza el ciclo de lectura linea por linea
       fgets(linea, largoLinea, archT); //lee 1 linea de largo maximo 99
       printf("%s", linea);
+
+      lineaParseada = parseline(linea);
+      printf(" - LABEL: %s", lineaParseada[0] ? lineaParseada[0] : "");
+      printf(" - MNEMONIC: %s", lineaParseada[1] ? lineaParseada[1] : "");
+      printf(" - OPERAND 1: %s", lineaParseada[2] ? lineaParseada[2] : "");
+      printf(" - OPERAND 2: %s", lineaParseada[3] ? lineaParseada[3] : "");
+      printf(" - COMMENT: %s\n\n\n", lineaParseada[4] ? lineaParseada[4] : "");
+
     }
     
+
+
    
     fclose(archT);
   } //abro el archivo para lectura
