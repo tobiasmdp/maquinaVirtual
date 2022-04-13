@@ -18,8 +18,21 @@ void ExtraerUnOperando(int ,int**,int*, int[] ,int [],int *);
 void ExtraerDosOperandos(int ,int** ,int** ,int*,int *, int[] ,int [],int *,int *);
 int get_value(int *,int );
 int set_value(int *,int , int);
+void registroCC(int, int[]);
 void add(int *,int ,int *,int ,int ,int ,int [],int []);
-typedef void T_fun(int *,int*);//tipo de funcion
+void cmp(int *,int ,int *,int ,int ,int ,int [],int []);
+void shl(int *,int ,int *,int ,int ,int ,int [],int []);
+void shr(int *,int ,int *,int ,int ,int ,int [],int []);
+void and(int *,int ,int *,int ,int ,int ,int [],int []);
+void or(int *,int ,int *,int ,int ,int ,int [],int []);
+void xor(int *,int ,int *,int ,int ,int ,int [],int []);
+void ldl(int *,int ,int *,int ,int ,int ,int [],int []);
+void ldh(int *,int ,int *,int ,int ,int ,int [],int []);
+void rnd(int *,int ,int *,int ,int ,int ,int [],int []);
+void not(int *,int ,int *,int ,int ,int ,int [],int []);
+void stop(int *,int ,int *,int ,int ,int ,int [],int []);
+
+typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
 int main(){
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
@@ -27,7 +40,7 @@ int main(){
     int memoria[TM],registro[TR];
     registro[10]=2;
     registro[11]=3;
-    T_fun* ArrayFunc[]={}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
+    T_fun* ArrayFunc[]={add,cmp,shl,shr,and,or,xor,0,0,0,0,ldl,ldh,rnd,not,0,0,0,0,0,stop}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     LeeArch(memoria,registro);
     while (registro[IP]<registro[DS]){
         indicef=0; 
@@ -48,15 +61,13 @@ int main(){
             ExtraerDosOperandos(inst,&A,&B,&C,&D,memoria,registro,&mascaraA,&mascaraB);
             indicef+=(inst>>28)&0x0F;
         }
-        add(A,mascaraA,B,C,D,mascaraB,memoria,registro);
-        //ArrayFunc[i-1];    EJECUTOR DE LAS FUNCIONES
-        printf("%d\n",(inst>>12 & 0x0FFF));
+        (*ArrayFunc[indicef-1])(A,mascaraA,B,C,D,mascaraB,memoria,registro); 
     }     
     return 0;
 }
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
-    arch=fopen("traducido2.mv1","rb");
+    arch=fopen("traducido3.mv1","rb");
     int i=0;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
@@ -134,11 +145,82 @@ void ExtraerDosOperandos(int inst,int **A,int **B,int *C, int *D, int memoria[],
                  //registro de 4 bytes (sale automatico)
         }
 }
-
+//Funciones de 2 operandos:
 void add(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     set_value (A,auxA+auxB,mascaraA);
+}
+
+void cmp(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA-auxB,registro);
+}
+
+void and(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA&auxB,registro);
+}
+void or(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA|auxB,registro);
+}
+void xor(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA^auxB,registro);
+}
+void shl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA<<auxB,registro);
+    set_value (A,auxA<<auxB,mascaraA);
+}
+void shr(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA>>auxB,registro);
+    set_value (A,auxA>>auxB,mascaraA);
+}
+
+
+////Funciones de 1 operando:
+void ldh(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    auxA<<=30;
+    mascaraA=0xC0000000;
+    set_value (&registro[AC],auxA,mascaraA);
+}
+void ldl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    mascaraA=0x03;
+    set_value (&registro[AC],auxA,mascaraA);
+}
+void rnd(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    set_value (&registro[AC],rand()%auxA,EXTENDED_MASK);
+}
+void not(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    registroCC(~auxA,registro);
+    set_value (A,~auxA,mascaraA);
+}
+
+////Funciones de 0 operandos:
+void stop(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    registro[IP]=registro[DS];
+}
+
+
+void registroCC(int aux, int registro[]){
+    registro[CC]=0x00000000;
+    if(aux<0)
+        registro[CC]&=0x80000000;
+    if (aux==0)
+        registro[CC]&=0x01;
 }
 
 int get_value(int *a, int mask){
