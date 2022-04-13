@@ -61,7 +61,7 @@ int main(){
             ExtraerDosOperandos(inst,&A,&B,&C,&D,memoria,registro,&mascaraA,&mascaraB);
             indicef+=(inst>>28)&0x0F;
         }
-        (*ArrayFunc[indicef-1])(A,mascaraA,B,C,D,mascaraB,memoria,registro); 
+        (*ArrayFunc[indicef-1])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
     }     
     return 0;
 }
@@ -162,16 +162,19 @@ void and(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA&auxB,registro);
+    set_value (A,auxA&auxB,mascaraA);
 }
 void or(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA|auxB,registro);
+    set_value (A,auxA|auxB,mascaraA);
 }
 void xor(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA^auxB,registro);
+    set_value (A,auxA^auxB,mascaraA);
 }
 void shl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
@@ -196,7 +199,7 @@ void ldh(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 void ldl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    mascaraA=0x03;
+    mascaraA=0x03; 
     set_value (&registro[AC],auxA,mascaraA);
 }
 void rnd(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -218,15 +221,16 @@ void stop(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int 
 void registroCC(int aux, int registro[]){
     registro[CC]=0x00000000;
     if(aux<0)
-        registro[CC]&=0x80000000;
+        registro[CC]|=0x80000000; 
     if (aux==0)
-        registro[CC]&=0x01;
+        registro[CC]|=0x01;
 }
 
 int get_value(int *a, int mask){
     int result = *a & mask;
     if((mask&0xFF)==0){
         result=result>>8;
+        //Agregar falso corrimiento
     }
     return result;
 }
