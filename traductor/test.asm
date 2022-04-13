@@ -10,4 +10,4 @@ mov ecx, 1
 mov edx, 10
 sys 2 ;print [10] en decimal
 jmp otro
-fin: stop++
+fin: stop
