@@ -58,7 +58,7 @@ int checkRegistro(char* cadena){
     return 0;
 }
 
-int tipoOperando(char* cadena){
+int getTipoOperando(char* cadena){
     if (checkDirecto(cadena))
         return TODirecto;
     if (checkInmediato(cadena))
@@ -100,16 +100,20 @@ int anyToIntH(char *s)
 }
 
 int getOperando(int tipoOperando, char* operandoEnString){
-    char* operandoAux;
+    char operandoAux[64];
     char** cono;
-    if (tipoOperando == TODirecto){
-        
-    }
     if (tipoOperando == TORegistro){
+        return operandoRegistro(operandoEnString);
+    }
+    if (tipoOperando == TODirecto){
         removeCorchetes(operandoEnString, operandoAux);
         return anyToInt(operandoAux, cono);
     }
     if (tipoOperando == TOInmediato){
         return anyToInt(operandoEnString, cono);
     }
+}
+
+int operandoRegistro(char *operandoEnString){
+    strlen()
 }
