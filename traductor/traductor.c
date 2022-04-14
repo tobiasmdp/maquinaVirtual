@@ -1,21 +1,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "parser.h"
 #include "parser.c"
 
 #define nombreArchB "traducido.mv1"
 #define largoLinea 256
+#define largoString 100
 
 int mnemonico(char lineaParseada[]);
 void toMayuscula(char* cadena);
+int anyToInt(char *s, char **out);
+void limpiaDirecto(char *strOperando);
 
 int main(int argc, char *argv[])
 {
 
-    char nombreArchivo[100], linea[largoLinea], **lineaParseada;
+    char nombreArchivo[largoString], linea[largoLinea], **lineaParseada, crudeOperando[largoString], strOperando[largoString];
     FILE *archT, *archB;
-    int instruccion = 0;
+    int instruccion = 0, intOperando;
+                
+            
 
     strcpy(nombreArchivo, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
 
@@ -40,7 +46,39 @@ int main(int argc, char *argv[])
             
             instruccion = mnemonico(lineaParseada[1]);
             printf("     %02x %02x %02x %02x\n\n\n\n", (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF);
-            printf(" ");
+
+            
+
+
+            strcpy(crudeOperando, lineaParseada[2]); 
+            if (crudeOperando[0] == '[') { //ASCII [, directo
+                /*
+                strncpy(strOperando, crudeOperando, strlen(crudeOperando)-1);
+                strrev(strOperando);
+                strncpy(strOperando, strOperando, strlen(strOperando)-2);
+                strrev(strOperando);
+                */
+                limpiaDirecto(crudeOperando);
+                printf("%c ",39);
+                //intOperando = anyToInt() ;
+            }
+            else if((crudeOperando[0] > 64 && crudeOperando[0] << 71) || (crudeOperando[0] > 96 && crudeOperando[0] << 103)){ // de registro (primera letra entre aA y fF )
+
+            }
+            else{ // inmediato
+
+            }
+            
+            if (instruccion>>28 == 0xF){ //1 OP
+
+            }
+            else if (instruccion>>24 == 0xFF) { //0 OP
+
+            }
+            else{ //2 OP
+
+            }
+
         }
         fclose(archT);
     } // abro el archivo para lectura
@@ -124,4 +162,22 @@ void toMayuscula(char* cadena){
         cadena[i] = toupper(cadena[i]);
         i++;
     }
+}
+
+int anyToInt(char *s, char **out){
+    char *BASES;
+    strcpy(BASES, "**$*****@*#*****%" );
+    int base = 10;
+    char *bp = strchr(BASES, *s);
+    if (bp != NULL){
+        base = bp - BASES;
+        ++s;
+    }
+    return strtol(s, out, base);
+}
+
+void sacaPriUlt(char *cadena){
+    char *resultado = cadena+1; 
+    resultado[strlen(resultado)-1] = '\0';//lo deje aca
+    return resultado;
 }

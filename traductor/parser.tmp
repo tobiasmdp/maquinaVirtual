@@ -1,1 +1,1 @@
-add [20], [10]
+mov [10], 0 ;inicializo variables
