@@ -12,7 +12,7 @@
 int mnemonico(char lineaParseada[]);
 void toMayuscula(char* cadena);
 int anyToInt(char *s, char **out);
-void limpiaDirecto(char *strOperando);
+int sacaPriUlt(char *cadena);
 
 int main(int argc, char *argv[])
 {
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
                 */
                 limpiaDirecto(crudeOperando);
                 printf("%c ",39);
-                //intOperando = anyToInt() ;
+                //intOperando = anyToInt();
             }
             else if((crudeOperando[0] > 64 && crudeOperando[0] << 71) || (crudeOperando[0] > 96 && crudeOperando[0] << 103)){ // de registro (primera letra entre aA y fF )
 
@@ -164,20 +164,10 @@ void toMayuscula(char* cadena){
     }
 }
 
-int anyToInt(char *s, char **out){
-    char *BASES;
-    strcpy(BASES, "**$*****@*#*****%" );
-    int base = 10;
-    char *bp = strchr(BASES, *s);
-    if (bp != NULL){
-        base = bp - BASES;
-        ++s;
-    }
-    return strtol(s, out, base);
-}
 
-void sacaPriUlt(char *cadena){
+
+int sacaPriUlt(char *cadena){
     char *resultado = cadena+1; 
-    resultado[strlen(resultado)-1] = '\0';//lo deje aca
+    resultado[strlen(resultado)-1] = '\0'; // lo deje aca
     return resultado;
 }
