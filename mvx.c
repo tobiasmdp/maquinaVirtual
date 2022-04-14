@@ -8,10 +8,18 @@
 #define IP 5
 #define CC 8
 #define AC 9
+#define EAX 10
+#define EBX 11
+#define ECX 12
+#define EDX 13
+#define EEX 14
+#define EFX 15
 #define EXTENDED_MASK 0xFFFFFFFF
 #define REG_MASK 0xFFFF
 #define HIGH_MASK 0xFF00
 #define LOW_MASK 0x00FF
+
+/*Prototipos*/
 
 void LeeArch(int[],int[]);
 void ExtraerUnOperando(int ,int**,int*, int[] ,int [],int *);
@@ -19,18 +27,31 @@ void ExtraerDosOperandos(int ,int** ,int** ,int*,int *, int[] ,int [],int *,int 
 int get_value(int *,int );
 int set_value(int *,int , int);
 void registroCC(int, int[]);
-void add(int *,int ,int *,int ,int ,int ,int [],int []);
-void cmp(int *,int ,int *,int ,int ,int ,int [],int []);
-void shl(int *,int ,int *,int ,int ,int ,int [],int []);
-void shr(int *,int ,int *,int ,int ,int ,int [],int []);
-void and(int *,int ,int *,int ,int ,int ,int [],int []);
-void or(int *,int ,int *,int ,int ,int ,int [],int []);
-void xor(int *,int ,int *,int ,int ,int ,int [],int []);
-void ldl(int *,int ,int *,int ,int ,int ,int [],int []);
-void ldh(int *,int ,int *,int ,int ,int ,int [],int []);
-void rnd(int *,int ,int *,int ,int ,int ,int [],int []);
-void not(int *,int ,int *,int ,int ,int ,int [],int []);
-void stop(int *,int ,int *,int ,int ,int ,int [],int []);
+void MOV(int *,int ,int *,int ,int ,int ,int [],int []);
+void ADD(int *,int ,int *,int ,int ,int ,int [],int []);
+void SUB(int *,int ,int *,int ,int ,int ,int [],int []);
+void MUL(int *,int ,int *,int ,int ,int ,int [],int []);
+void DIV(int *,int ,int *,int ,int ,int ,int [],int []);
+void SWAP(int *,int ,int *,int ,int ,int ,int [],int []);
+void CMP(int *,int ,int *,int ,int ,int ,int [],int []);
+void SHL(int *,int ,int *,int ,int ,int ,int [],int []);
+void SHR(int *,int ,int *,int ,int ,int ,int [],int []);
+void SYS(int *,int ,int *,int ,int ,int ,int [],int []);
+void JMP(int *,int ,int *,int ,int ,int ,int [],int []);
+void JZ(int *,int ,int *,int ,int ,int ,int [],int []);
+void JP(int *,int ,int *,int ,int ,int ,int [],int []);
+void JN(int *,int ,int *,int ,int ,int ,int [],int []);
+void JNZ(int *,int ,int *,int ,int ,int ,int [],int []);
+void JNP(int *,int ,int *,int ,int ,int ,int [],int []);
+void JNN(int *,int ,int *,int ,int ,int ,int [],int []);
+void AND(int *,int ,int *,int ,int ,int ,int [],int []);
+void OR(int *,int ,int *,int ,int ,int ,int [],int []);
+void XOR(int *,int ,int *,int ,int ,int ,int [],int []);
+void LDL(int *,int ,int *,int ,int ,int ,int [],int []);
+void LDH(int *,int ,int *,int ,int ,int ,int [],int []);
+void RND(int *,int ,int *,int ,int ,int ,int [],int []);
+void NOT(int *,int ,int *,int ,int ,int ,int [],int []);
+void STOP(int *,int ,int *,int ,int ,int ,int [],int []);
 
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
@@ -40,7 +61,7 @@ int main(){
     int memoria[TM],registro[TR];
     registro[10]=2;
     registro[11]=3;
-    T_fun* ArrayFunc[]={add,cmp,shl,shr,and,or,xor,0,0,0,0,ldl,ldh,rnd,not,0,0,0,0,0,stop}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
+    T_fun* ArrayFunc[]={MOV,ADD,SUB,MUL,DIV,SWAP,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     LeeArch(memoria,registro);
     while (registro[IP]<registro[DS]){
         indicef=0; 
@@ -79,6 +100,8 @@ void LeeArch(int memoria[],int registro[]){
     registro[DS]=i;
     fclose(arch);
 }
+
+/*Extraccion operandos*/
 
 void ExtraerUnOperando(int inst,int **A,int *C, int memoria[],int registro[],int *mascaraA){
     if ((inst>>22 & 0x03)==0){//Inmediato
@@ -145,44 +168,78 @@ void ExtraerDosOperandos(int inst,int **A,int **B,int *C, int *D, int memoria[],
                  //registro de 4 bytes (sale automatico)
         }
 }
+
 //Funciones de 2 operandos:
-void add(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+
+void MOV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    set_value (A,get_value(B,mascaraB),mascaraA);
+}
+
+void ADD(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
+    registroCC(auxA+auxB,registro);
     set_value (A,auxA+auxB,mascaraA);
 }
 
-void cmp(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void SUB(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA-auxB,registro);
+    set_value (A,auxA-auxB,mascaraA);
+}
+
+void MUL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registroCC(auxA*auxB,registro);
+    set_value (A,auxA*auxB,mascaraA);
+}
+
+void DIV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+     registroCC(auxA%auxB,registro);
+    set_value (A,auxA/auxB,mascaraA);
+}
+
+void SWAP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int aux=get_value(A,mascaraA);
+    set_value(A,get_value(B,mascaraB),mascaraA);
+    set_value(B,aux,mascaraB);
+}
+
+void CMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA-auxB,registro);
 }
 
-void and(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void AND(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA&auxB,registro);
     set_value (A,auxA&auxB,mascaraA);
 }
-void or(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void OR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA|auxB,registro);
     set_value (A,auxA|auxB,mascaraA);
 }
-void xor(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void XOR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA^auxB,registro);
     set_value (A,auxA^auxB,mascaraA);
 }
-void shl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void SHL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA<<auxB,registro);
     set_value (A,auxA<<auxB,mascaraA);
 }
-void shr(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
     registroCC(auxA>>auxB,registro);
@@ -191,32 +248,122 @@ void shr(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 
 
 ////Funciones de 1 operando:
-void ldh(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int i,j,longitud;
+    char caracter[]={};
+    if (*A & mascaraA == 1){// lectura
+         i=memoria[DS+registro[EDX]];
+        while (i<=(registro[ECX]&REG_MASK)){ // preguntar si el valor que me da en el parentesis es un decimal
+            if ((registro[EAX]&0x0800)>>11==0)
+                printf("[%d ]",i);
+            if ((registro[EAX]&0x0100)>>8==0){
+                if ((registro[EAX]&0x001)==1)
+                    scanf("%d",memoria[i]);
+                if ((registro[EAX]&0x004)==1)
+                    scanf("%o",memoria[i]);
+                if ((registro[EAX]&0x008)==1)
+                    scanf("%X",memoria[i]);
+                i++;
+            }
+            else {
+                scanf("%c",caracter);
+                longitud=strlen(caracter);
+                j=0;
+                while (j<=longitud && i<=(registro[ECX]&REG_MASK)){
+                    memoria[i]=caracter[j];
+                    i++;    
+                }
+            }
+        }
+    }
+    else 
+      if (*A & mascaraA == 2){ // escritura
+        i=memoria[DS+registro[EDX]];
+        while (i<=(registro[ECX]&REG_MASK)){ // preguntar si el valor que me da en el parentesis es un decimal
+            if ((registro[EAX]&0x0800)>>11==0)
+                printf("[%d ]",i);
+            if ((registro[EAX]&0x001)==1)
+                printf("%d ",memoria[i]);
+            if ((registro[EAX]&0x004)==1)
+                printf("%o ",memoria[i]);
+            if ((registro[EAX]&0x008)==1)
+                printf("%X ",memoria[i]);
+            if ((registro[EAX]&0x010)>>4==1)
+                printf("%c ",(memoria[i]&0x0F));
+            if ((registro[EAX]&0x0100)>>8==0)
+                printf("/n");
+            i++;
+        }
+      }
+      else
+        if (*A & mascaraA == 15){ //breakpoint
+            //flags
+        }
+
+}
+
+void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    registro[IP]=get_value(A,mascaraA); // mueve el ip al valor del operando
+}
+
+void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    if (registro[CC]&01==1)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro); // o copiar el contenido de JMP
+}
+
+void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    if ((registro[CC]>>31)&0x01==0)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
+}
+
+void JN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    if ((registro[CC]>>31)&0x01==1)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
+}
+
+void JNZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    if (registro[CC]&0x01==0)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
+}
+
+void JNP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    
+}
+
+void JNN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    
+}
+
+void LDH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     auxA<<=30;
     mascaraA=0xC0000000;
     set_value (&registro[AC],auxA,mascaraA);
 }
-void ldl(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+
+void LDL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     mascaraA=0x03; 
     set_value (&registro[AC],auxA,mascaraA);
 }
-void rnd(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+
+void RND(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     set_value (&registro[AC],rand()%auxA,EXTENDED_MASK);
 }
-void not(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+
+void NOT(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     registroCC(~auxA,registro);
     set_value (A,~auxA,mascaraA);
 }
 
 ////Funciones de 0 operandos:
-void stop(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+void STOP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     registro[IP]=registro[DS];
 }
 
+/*Otras funciones utiles*/
 
 void registroCC(int aux, int registro[]){
     registro[CC]=0x00000000;
