@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "parser.h"
 #include "parser.c"
 
@@ -7,10 +8,58 @@
 #define largoLinea 256
 
 int mnemonico(char lineaParseada[]);
+void toMayuscula(char* cadena);
+
+int main(int argc, char *argv[])
+{
+
+    char nombreArchivo[100], linea[largoLinea], **lineaParseada;
+    FILE *archT, *archB;
+    int instruccion = 0;
+
+    strcpy(nombreArchivo, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
+
+    if ((archT = fopen(nombreArchivo, "r")) != NULL)
+    {
+
+        archB = fopen(nombreArchB, "wb"); // creo el binario
+
+        while (fgets(linea, largoLinea, archT) != NULL)
+        { // comienza el ciclo de lectura linea por linea
+
+            printf("%s", linea);
+
+            lineaParseada = parseline(linea);
+            printf(" - LABEL: %s", lineaParseada[0] ? lineaParseada[0] : "");
+            printf(" - MNEMONIC: %s", lineaParseada[1] ? lineaParseada[1] : "");
+            printf(" - OPERAND 1: %s", lineaParseada[2] ? lineaParseada[2] : "");
+            printf(" - OPERAND 2: %s", lineaParseada[3] ? lineaParseada[3] : "");
+            printf(" - COMMENT: %s\n", lineaParseada[4] ? lineaParseada[4] : "");
+
+
+            
+            instruccion = mnemonico(lineaParseada[1]);
+            printf("     %02x %02x %02x %02x\n\n\n\n", (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF);
+            printf(" ");
+        }
+        fclose(archT);
+    } // abro el archivo para lectura
+    else
+        printf("no encontre el archivo");
+
+    // tiene que escribir un binario formato ".mv1"
+    return 0;
+}
+
+
+
 
 int mnemonico(char lineaParseada[])
 {
     int instruccion;
+
+    toMayuscula(lineaParseada);
+
     if (strcmp(lineaParseada, "MOV") == 0)
         instruccion = 0x00000000;
     else if (strcmp(lineaParseada, "ADD") == 0)
@@ -69,40 +118,10 @@ int mnemonico(char lineaParseada[])
     return instruccion;
 }
 
-int main(int argc, char *argv[])
-{
-
-    char nombreArchivo[100], linea[largoLinea], **lineaParseada;
-    FILE *archT, *archB;
-    int instruccion = 0;
-
-    strcpy(nombreArchivo, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
-
-    if ((archT = fopen(nombreArchivo, "r")) != NULL)
-    {
-
-        archB = fopen(nombreArchB, "wb"); // creo el binario
-
-        while (fgets(linea, largoLinea, archT) != NULL)
-        { // comienza el ciclo de lectura linea por linea
-
-            printf("%s", linea);
-
-            lineaParseada = parseline(linea);
-            printf(" - LABEL: %s", lineaParseada[0] ? lineaParseada[0] : "");
-            printf(" - MNEMONIC: %s", lineaParseada[1] ? lineaParseada[1] : "");
-            printf(" - OPERAND 1: %s", lineaParseada[2] ? lineaParseada[2] : "");
-            printf(" - OPERAND 2: %s", lineaParseada[3] ? lineaParseada[3] : "");
-            printf(" - COMMENT: %s\n", lineaParseada[4] ? lineaParseada[4] : "");
-
-            instruccion = mnemonico(lineaParseada[1]);
-            printf("%08x\n\n\n\n", instruccion);
-        }
-        fclose(archT);
-    } // abro el archivo para lectura
-    else
-        printf("no encontre el archivo");
-
-    // tiene que escribir un binario formato ".mv1"
-    return 0;
+void toMayuscula(char* cadena){
+    int i=0; 
+    while (cadena[i]){
+        cadena[i] = toupper(cadena[i]);
+        i++;
+    }
 }
