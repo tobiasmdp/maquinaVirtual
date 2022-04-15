@@ -1,1 +1,1 @@
-fin: stop
+otro: cmp [20], 100 ;compara

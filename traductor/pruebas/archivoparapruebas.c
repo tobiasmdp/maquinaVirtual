@@ -9,6 +9,7 @@ const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","
 
 
 int mnemonico_(char* cadena);
+int checkCaracter(char* cadena);
 
 int main(int argc, char const *argv[])
 {
@@ -17,14 +18,24 @@ int main(int argc, char const *argv[])
     printf("%d",a);
     printf("%d",a);
     // sizeof(tablaMnemonicos[0]) / sizeof(tablaMnemonicos[0][0])
-
+    const char* label = {"pP@pe"};
+    a = checkCaracter((char*)label);
+    printf("%d\n",a);
+    printf("%d",a);
 
 }
 
-const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
-                            {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
-                            {"MOV","ADD","SUB","SWAP","MUL","DIV","SHL","SUB","SHR","AND","OR","XOR","","","",""}};
 
+int checkCaracter(char* cadena){
+    //funcion para determinar si es una cadena de caracteres
+    int i=0;
+    while (cadena[i]){
+        if (!isalpha(cadena[i]))
+            return 0;
+        i++;
+    }
+    return 1;
+}
 
 int mnemonico_(char* cadena){ //-1  no encontro el mnemonico
     for (int i=0; i<3; i++){
