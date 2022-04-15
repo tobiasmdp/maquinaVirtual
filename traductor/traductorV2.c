@@ -27,20 +27,21 @@ int getRotulo(char* operandoEnString);
 int checkSalto(int mnemonico);
 int checkRotulo(char* operandoEnString, int mnemonico);
 void transformRotulo(char* operandoEnString, int mnemonico);
+void checkTruncado(int operando, int bits);
+void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]);
 
 int instruccion, exito=1; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
 char* tablaRotulos[largoMemoria];
+int header[6];
 
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
-    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2;
-    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada;
-
-    //leerRotulosArchivo();
+    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0;
+    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, rotuloOriginal[largoString];
 
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
@@ -53,6 +54,8 @@ int main(int argc, char const *argv[]){
 
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
             lineaParseada = parseline(linea);
+            if (lineaParseada[0]) //si hay rotulo
+            strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
             /*
             LABEL: lineaParseada[0]
             MNEMONIC: lineaParseada[1]
@@ -79,6 +82,8 @@ int main(int argc, char const *argv[]){
                 instruccion |= tipoOperando2<<24;
                 operando1 = getOperando(tipoOperando1, lineaParseada[2]);
                 operando2 = getOperando(tipoOperando2, lineaParseada[3]);
+                checkTruncado(operando1,12);
+                checkTruncado(operando2,12);
                 instruccion |= (operando1<<12)&0x00FFF000;
                 instruccion |= (operando2)&0x00000FFF;
             }
@@ -88,14 +93,14 @@ int main(int argc, char const *argv[]){
                 tipoOperando1 = getTipoOperando(lineaParseada[2]);
                 instruccion |= tipoOperando1<<22;
                 operando1 = getOperando(tipoOperando1, lineaParseada[2]);
+                checkTruncado(operando1,12);
                 instruccion |= (operando1)&0x0000FFFF;
             }
             else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
                 instruccion = mnemonico<<20;
             }
-            printf("     %02x %02x %02x %02x\n\n", (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF);
-            printf("a");
-
+            printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
+            dirMem++;
         }
         fclose(archT);
     }
@@ -276,5 +281,33 @@ void transformRotulo(char* operandoEnString, int mnemonico){
             exito=0;
         }
         strcpy(operandoEnString, aux);
+    }
+}
+
+void checkTruncado(int operando, int bits){
+    if (bits == 16)
+        if ((operando & 0xFFFF0000) != 0){
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
+        }
+    if (bits == 12)
+                if ((operando & 0xFFFFF000) != 0){
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
+        }
+}
+
+void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]){
+    char coma[largoLinea]=";";
+    if(lineaParseada[1]){ //tiene mnemonico --> no es comentario
+        if (lineaParseada[0] != 0) //si tiene rotulo
+            printf("[%04d]  %02x %02x %02x %02x %12s: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            rotulo, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
+            (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
+        else
+            printf("[%04d]  %02x %02x %02x %02x %12d: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            dirMem+1, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2], 
+            (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
+    }
+    else{
+        printf(lineaParseada[4]);
     }
 }
