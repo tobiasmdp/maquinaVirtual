@@ -24,12 +24,16 @@ int operandoRegistro(char *operandoEnString);
 int getOperando(int tipoOperando, char* operandoEnString);
 void getTablaRotulos(char* nombreArchT);
 int getRotulo(char* operandoEnString);
+int checkSalto(int mnemonico);
+int checkRotulo(char* operandoEnString, int mnemonico);
+void transformRotulo(char* operandoEnString, int mnemonico);
 
-int instruccion;
+int instruccion, exito=1; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
 char* tablaRotulos[largoMemoria];
+
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
@@ -58,6 +62,7 @@ int main(int argc, char const *argv[]){
             */
             mnemonico = getMnemonico(lineaParseada[1]);
             instruccion=0;
+            exito=0;
             if (mnemonico < 0){
                 /*
                 Error de sintaxis es el de una instrucción inexistente, en cuyo caso mostrará un mensaje
@@ -78,6 +83,7 @@ int main(int argc, char const *argv[]){
                 instruccion |= (operando2)&0x00000FFF;
             }
             else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
+                transformRotulo(lineaParseada[2], mnemonico);
                 instruccion = mnemonico<<24;
                 tipoOperando1 = getTipoOperando(lineaParseada[2]);
                 instruccion |= tipoOperando1<<22;
@@ -144,8 +150,6 @@ int checkInmediato(char* cadena){
         return 1;
     if (checkNumeric(cadena))
         return 1;
-    if (checkCaracter(cadena)) //para el label, que se considera inmediato
-        return 1;
     return 0;
 }
 
@@ -156,8 +160,13 @@ int checkDirecto(char* cadena){
 }
 
 int checkRegistro(char* cadena){
-    if ((cadena[0] >= 'A' && cadena[0] <= 'F') || (cadena[0] >= 'a' && cadena[0] <= 'f'))
-        return 1;
+    int largoCadena = strlen(cadena);
+    if (largoCadena == 2)
+        if ((cadena[0] >= 'A' && cadena[0] <= 'F') || (cadena[0] >= 'a' && cadena[0] <= 'f'))
+            return 1;
+    if (largoCadena == 3)
+        if ((cadena[1] >= 'A' && cadena[1] <= 'F') || (cadena[1] >= 'a' && cadena[1] <= 'f'))
+            return 1;
     return 0;
 }
 
@@ -166,7 +175,7 @@ int getTipoOperando(char* cadena){
         return TODirecto;
     if (checkRegistro(cadena))
         return TORegistro;
-    if (checkInmediato(cadena)) //fundamental que este este ultimo, ya que considera Rotulo, y primero se deben descartar los TORegistro
+    if (checkInmediato(cadena))
         return TOInmediato;
     return -1;
 }
@@ -214,8 +223,6 @@ int getOperando(int tipoOperando, char* operandoEnString){
         return anyToInt(operandoAux, &cono);
     }
     if (tipoOperando == TOInmediato){
-        if (checkCaracter(operandoEnString)) //si es label
-            return getRotulo(operandoEnString);
         return anyToInt(operandoEnString, &cono); 
     }
 }
@@ -236,10 +243,38 @@ void getTablaRotulos(char* nombreArchT){
     }
 }
 
-
 int getRotulo(char* operandoEnString){
      for( int i=0; i<largoLinea; i++)
         if(stricmp(operandoEnString, tablaRotulos[i]) == 0)
             return i; //i es la pos de memoria corresp a ese Rotulo
     return -1;
+}
+
+int checkSalto(int mnemonico){
+    if (mnemonico >= 0xf1 && mnemonico <= 0xf7)
+        return 1;
+    return 0;
+}
+
+int checkRotulo(char* operandoEnString, int mnemonico){
+    if (! checkRegistro(operandoEnString)){ 
+        if (checkSalto(mnemonico))
+            return 1;
+    }
+    return 0;
+}
+
+void transformRotulo(char* operandoEnString, int mnemonico){
+    int rotuloInt = getRotulo(operandoEnString);
+    char aux[largoString];
+    if (checkRotulo(operandoEnString, mnemonico)){
+        if (rotuloInt != -1)
+            sprintf(aux, "%d", rotuloInt);
+        else{
+            sprintf(aux, "%X", 0xFFF);
+            printf("Error, No se encuentra el rótulo");
+            exito=0;
+        }
+        strcpy(operandoEnString, aux);
+    }
 }

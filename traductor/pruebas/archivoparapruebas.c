@@ -13,6 +13,7 @@ int checkCaracter(char* cadena);
 
 int main(int argc, char const *argv[])
 {
+    
     const char* mnem = {"JMP"};
     int a = mnemonico_((char*)mnem);
     printf("%d",a);

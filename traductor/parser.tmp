@@ -1,1 +1,1 @@
-jp fin ;salta si llegó a 100 o más
+fin: stop
