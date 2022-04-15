@@ -1,1 +1,1 @@
-fin: stop
+test: MOV AX, 123 ;inicializa AX
