@@ -29,6 +29,7 @@ int checkRotulo(char* operandoEnString, int mnemonico);
 void transformRotulo(char* operandoEnString, int mnemonico);
 void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]);
+void getHeader(int cantCeldas);
 
 int instruccion, exito=1; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
@@ -40,7 +41,7 @@ int header[6];
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
-    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0;
+    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0, cantCeldas;
     char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, rotuloOriginal[largoString];
 
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
@@ -100,13 +101,13 @@ int main(int argc, char const *argv[]){
                 instruccion = mnemonico<<20;
             }
             printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
-            dirMem++;
+            cantCeldas = dirMem++;
         }
+        getHeader(cantCeldas+1);
         fclose(archT);
     }
     else
         printf("no encontre el archivo");
-
     return 0;
 }
 
@@ -310,4 +311,13 @@ void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]){
     else{
         printf(lineaParseada[4]);
     }
+}
+
+void getHeader(int cantCeldas){
+    header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'1');
+    header[1]=0;
+    header[2]=0;
+    header[3]=0;
+    header[4]=cantCeldas;
+    header[5]=((int)'V'<<24 | (int)'.'<<16 | (int)'2'<<8 | (int)'2');
 }

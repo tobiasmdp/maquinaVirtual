@@ -15,9 +15,8 @@ int main(int argc, char const *argv[])
 {
 
     //int header[6] = ;
-
-    if ()
-
+    int bloque= ((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'1');
+    int bloque2= (77<<24 | 86<<16 | 45<<8 | 49);
 
     const char* mnem = {"JMP"};
     int a = mnemonico_((char*)mnem);
