@@ -1,1 +1,1 @@
-mov [10], 0 ;inicializo variables
+fin: stop

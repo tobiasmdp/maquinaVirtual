@@ -1,17 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-const char* opNames[16] = {"MOV","ADD","SUB"};//un array de punteros a char 
+#include <ctype.h>
+#define TOInmediato (0)
+#define TORegistro (1)
+#define TODirecto (2)
 
-#define DUB(A)  (A+A)
 
-int mnemonico(char* cadena){
-    for (int i=0; i<3; i++){
-        if (stricmp(opNames[i], cadena) == 0){
-            return i;
-        } //i no importa mayusc
-    }
-    return -1;
-}
 
 int main(int argc, char const *argv[])
 {
@@ -19,6 +13,40 @@ int main(int argc, char const *argv[])
     printf ("%d\n", mnemonico((char*)cadena));
     return 0;
 
+}
+
+const char* op2Names[16] = {"MOV","ADD","SUB","SWAP","MUL","DIV","SHL","SUB","SHR","AND","OR","XOR"};//un array de punteros a char 
+const char* op1Names[16] = {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT"};
+const char* op0Names[16] = {"","STOP"};
+
+
+int mnemonico(char* cadena){ //-1  no encontro el mnemonico
+    for (int i=0; i<3; i++){
+        if (stricmp(opNames[i], cadena) == 0){//i no importa mayusc
+            return i;
+        } 
+    }
+    return -1;
+}
+
+const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
+                            {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
+                            {"MOV","ADD","SUB","SWAP","MUL","DIV","SHL","SUB","SHR","AND","OR","XOR","","","",""}};
+
+
+int mnemonico_(char* cadena){ //-1  no encontro el mnemonico
+    for (int i=0; i<3; i++){
+        for (int j=0; j<16; j++)
+        if (stricmp(tablaMnemonicos[i][j], cadena) == 0){//i no importa mayusc
+            if (i == 0) 
+                return 0xFF<<4 |j;
+            if (i == 1) 
+                return 0xF<<4 |j;
+            if (i == 2) 
+                return j;
+        } 
+    }
+    return -1;
 }
 
 #define TOInmediato (0)
@@ -115,5 +143,17 @@ int getOperando(int tipoOperando, char* operandoEnString){
 }
 
 int operandoRegistro(char *operandoEnString){
-    strlen()
+    int largoCadena = strlen(operandoEnString);
+    //pasar a mayusculas
+    if (largoCadena == 2){ 
+        if (toupper(operandoEnString[1]) == 'L')
+            return (1<<4 | operandoEnString[0]);
+        if (toupper(operandoEnString[1]) == 'H')
+            return (2<<4 | operandoEnString[0]);
+        if (toupper(operandoEnString[1]) == 'X')
+            return (3<<4 | operandoEnString[0]);
+    }
+    if (largoCadena == 3){
+        return (0 | operandoEnString[0]);
+    }
 }

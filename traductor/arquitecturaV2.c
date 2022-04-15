@@ -1,17 +1,33 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include "parser.h"
+#include "parser.c"
 
+#define nombreArchB "traducido.mv1"
+#define largoLinea 256
+#define largoString 100
 #define TOInmediato (0)
 #define TORegistro (1)
 #define TODirecto (2)
 int instruccion;
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
     leerRotulosArchivo();
 
 
-    int mnemonico = getMnemonico(_mnemonicoEnString);
-    int operando1, operando2, tipoOperando1, tipoOperando2;
+    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2;
+    char nombreArchivo[largoString],
+
+    strcpy(nombreArchivo, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
+    if ((archT = fopen(nombreArchivo, "r")) != NULL)
+
 //while que va de a una linea
+
+
+
     mnemonico = getMnemonico(_mnemonicoEnString);
     instruccion=0;
     if (mnemonico < 0){

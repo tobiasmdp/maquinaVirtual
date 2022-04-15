@@ -24,7 +24,6 @@ int main(int argc, char *argv[])
             
 
     strcpy(nombreArchivo, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
-
     if ((archT = fopen(nombreArchivo, "r")) != NULL)
     {
 
