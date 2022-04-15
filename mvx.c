@@ -307,17 +307,17 @@ void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if (registro[CC]&01==1)
+    if (registro[CC]&0x01==1)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro); // o copiar el contenido de JMP
 }
 
 void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]>>31)&0x01==0)
+    if ((registro[CC]>>31)&0x80000001==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void JN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]>>31)&0x01==1)
+    if ((registro[CC]>>31)&0x01==1 && (registro[CC]&0x01)==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
@@ -327,11 +327,13 @@ void JNZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void JNP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    
+    if (registro[CC]&0x01==1 || (registro[CC]&0x80000000)>>31==1)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void JNN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    
+    if (registro[CC]&0x01==1 || (registro[CC]&0x80000000)>>31==0)
+        JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void LDH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
