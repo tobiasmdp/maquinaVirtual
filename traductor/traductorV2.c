@@ -31,12 +31,11 @@ void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]);
 void getHeader(int cantCeldas);
 
-int instruccion, exito=1; //exito significa 0 errores
+int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
 char* tablaRotulos[largoMemoria];
-int header[6];
 
 
 int main(int argc, char const *argv[]){
@@ -51,29 +50,18 @@ int main(int argc, char const *argv[]){
 
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
-        archB = fopen(nombreArchB, "wb"); // creo el binario
-
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
+            instruccion=0;
+
             lineaParseada = parseline(linea);
             if (lineaParseada[0]) //si hay rotulo
-            strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
-            /*
-            LABEL: lineaParseada[0]
-            MNEMONIC: lineaParseada[1]
-            OPERAND 1: lineaParseada[2]
-            OPERAND 2: lineaParseada[3]
-            COMMENT:lineaParseada[4]
-            */
+                strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
+    
             mnemonico = getMnemonico(lineaParseada[1]);
-            instruccion=0;
-            exito=0;
             if (mnemonico < 0){
-                /*
-                Error de sintaxis es el de una instrucción inexistente, en cuyo caso mostrará un mensaje
-                indicándolo. La línea no será traducida, en la celda de la instrucción quedará en FF FF FF FF.
-                */
-            instruccion = 0xFFFFFFFF;
-            printf("Error de Sintaxis");
+                instruccion = 0xFFFFFFFF;
+                printf("Error de Sintaxis");
+                exito=0;
             }
             else if (mnemonico >= 0x0 && mnemonico <= 0xB){ //2 OP
                 instruccion = mnemonico<<28;
@@ -100,14 +88,24 @@ int main(int argc, char const *argv[]){
             else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
                 instruccion = mnemonico<<20;
             }
+
+            tablaInstrucciones[dirMem] = instruccion; 
             printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
-            cantCeldas = dirMem++;
+            dirMem++;
         }
-        getHeader(cantCeldas+1);
+        getHeader(dirMem+1); //dirMem+1 = cantCeldas  
         fclose(archT);
     }
     else
-        printf("no encontre el archivo");
+        printf("no se encontro el archivo");
+
+
+    if(exito)
+        if ((archB = fopen(nombreArchB, "wb")) != NULL){
+            fwrite(header, sizeof(int), sizeof(header), archB);
+            fwrite(tablaInstrucciones, sizeof(int), dirMem+1, archB);
+            fclose(archB);
+        }
     return 0;
 }
 
