@@ -88,9 +88,11 @@ int main(int argc, char const *argv[]){
             else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
                 instruccion = mnemonico<<20;
             }
-
             tablaInstrucciones[dirMem] = instruccion; 
-            printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
+
+            if(argc <4 || (strcmp(argv[3],"-o") != 0))
+                printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
+            
             dirMem++;
         }
         getHeader(dirMem+1); //dirMem+1 = cantCeldas  
