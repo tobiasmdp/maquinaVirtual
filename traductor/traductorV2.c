@@ -41,7 +41,7 @@ char* tablaRotulos[largoMemoria];
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
     int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0, cantCeldas;
-    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, rotuloOriginal[largoString];
+    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, **lineaParseadaOriginal = (char**) malloc(sizeof(lineaParseada));
 
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
@@ -54,8 +54,11 @@ int main(int argc, char const *argv[]){
             instruccion=0;
 
             lineaParseada = parseline(linea);
+            memcpy(lineaParseadaOriginal, lineaParseada, sizeof(lineaParseada));
+
+
             if (lineaParseada[0]) //si hay rotulo
-                strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
+               // strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
     
             mnemonico = getMnemonico(lineaParseada[1]);
             if (mnemonico < 0){
@@ -91,7 +94,7 @@ int main(int argc, char const *argv[]){
             tablaInstrucciones[dirMem] = instruccion; 
 
             if(argc <4 || (strcmp(argv[3],"-o") != 0))
-                printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
+                //printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
             
             dirMem++;
         }
