@@ -26,7 +26,7 @@ int getOperando(int tipoOperando, char* operandoEnString);
 int instruccion;
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
-                            {"MOV","ADD","SUB","SWAP","MUL","DIV","SHL","SUB","SHR","AND","OR","XOR","","","",""}};
+                            {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
 
 int main(int argc, char const *argv[])
 {
@@ -69,7 +69,7 @@ int main(int argc, char const *argv[])
                 operando1 = getOperando(tipoOperando1, lineaParseada[2]);
                 operando2 = getOperando(tipoOperando2, lineaParseada[3]);
                 instruccion |= (operando1<<12)&0x00FFF000;
-                instruccion = (operando2)&0x00000FFF;
+                instruccion |= (operando2)&0x00000FFF;
             }
             else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
                 instruccion = mnemonico<<24;
@@ -174,14 +174,14 @@ int operandoRegistro(char *operandoEnString){
     int largoCadena = strlen(operandoEnString);
     if (largoCadena == 2){ 
         if (toupper(operandoEnString[1]) == 'L') //toupper hace un return, no edita, hace uppercase
-            return (1<<4 | operandoEnString[0]);
+            return (1<<4 | toupper(operandoEnString[0])-55); //siempre la letra mayusc asi en el ascci siempre resto 55
         if (toupper(operandoEnString[1]) == 'H')
-            return (2<<4 | operandoEnString[0]);
+            return (2<<4 | toupper(operandoEnString[0])-55);
         if (toupper(operandoEnString[1]) == 'X')
-            return (3<<4 | operandoEnString[0]);
+            return (3<<4 | toupper(operandoEnString[0])-55);
     }
     if (largoCadena == 3){
-        return (0 | operandoEnString[0]);
+        return (0 | toupper(operandoEnString[1])-55);
     }
 }
 
