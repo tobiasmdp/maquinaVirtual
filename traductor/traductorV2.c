@@ -7,6 +7,7 @@
 
 #define largoLinea 256
 #define largoString 100
+#define largoMemoria 4096
 #define TOInmediato (0)
 #define TORegistro (1)
 #define TODirecto (2)
@@ -21,13 +22,14 @@ void removeCorchetes(char* cadena, char* out);
 int anyToInt(char *s, char **out);
 int operandoRegistro(char *operandoEnString);
 int getOperando(int tipoOperando, char* operandoEnString);
-void getRotulos(char* nombreArchT);
+void getTablaRotulos(char* nombreArchT);
+int getRotulo(char* operandoEnString);
 
 int instruccion;
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
-char* tablaRotulos[4096];
+char* tablaRotulos[largoMemoria];
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
@@ -39,7 +41,7 @@ int main(int argc, char const *argv[]){
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
 
-    getRotulos(nombreArchT);
+    getTablaRotulos(nombreArchT);
 
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
@@ -162,10 +164,10 @@ int checkRegistro(char* cadena){
 int getTipoOperando(char* cadena){
     if (checkDirecto(cadena))
         return TODirecto;
-    if (checkInmediato(cadena))
-        return TOInmediato;
     if (checkRegistro(cadena))
         return TORegistro;
+    if (checkInmediato(cadena)) //fundamental que este este ultimo, ya que considera Rotulo, y primero se deben descartar los TORegistro
+        return TOInmediato;
     return -1;
 }
 
@@ -213,12 +215,12 @@ int getOperando(int tipoOperando, char* operandoEnString){
     }
     if (tipoOperando == TOInmediato){
         if (checkCaracter(operandoEnString)) //si es label
-            //busca el label, lo traduce etc..
+            return getRotulo(operandoEnString);
         return anyToInt(operandoEnString, &cono); 
     }
 }
 
-void getRotulos(char* nombreArchT){
+void getTablaRotulos(char* nombreArchT){
     int i=0;
     FILE *archT;
     char linea[largoLinea], **lineaParseada;
@@ -232,8 +234,12 @@ void getRotulos(char* nombreArchT){
             i++;
         }
     }
-
-
 }
 
 
+int getRotulo(char* operandoEnString){
+     for( int i=0; i<largoLinea; i++)
+        if(stricmp(operandoEnString, tablaRotulos[i]) == 0)
+            return i; //i es la pos de memoria corresp a ese Rotulo
+    return -1;
+}

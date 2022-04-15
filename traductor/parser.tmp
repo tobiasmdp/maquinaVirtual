@@ -1,1 +1,1 @@
-otro: cmp [20], 100 ;compara
+jp fin ;salta si llegó a 100 o más
