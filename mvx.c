@@ -59,8 +59,6 @@ int main(){
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB;
     int memoria[TM],registro[TR];
-    registro[10]=2;
-    registro[11]=3;
     T_fun* ArrayFunc[]={MOV,ADD,SUB,MUL,DIV,SWAP,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     LeeArch(memoria,registro);
     while (registro[IP]<registro[DS]){
@@ -82,13 +80,13 @@ int main(){
             ExtraerDosOperandos(inst,&A,&B,&C,&D,memoria,registro,&mascaraA,&mascaraB);
             indicef+=(inst>>28)&0x0F;
         }
-        (*ArrayFunc[indicef-1])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
+        (*ArrayFunc[indicef])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
     }     
     return 0;
 }
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
-    arch=fopen("traducido3.mv1","rb");
+    arch=fopen("traducido5.mv1","rb");
     int i=0;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
@@ -106,20 +104,22 @@ void LeeArch(int memoria[],int registro[]){
 void ExtraerUnOperando(int inst,int **A,int *C, int memoria[],int registro[],int *mascaraA){
     if ((inst>>22 & 0x03)==0){//Inmediato
         *C=inst & 0x0FFFF;
+        *C<<=20; 
+        *C>>=20;
         *A=C; // tambien analizar si es char
    }
     else
-        if (inst>>22 & 0x03==2)//Directo
+        if ((inst>>22 & 0x03)==2)//Directo
             *A=&memoria[registro[DS]+(inst & 0x0FFFF)];
         else{//Registro
            *A=&registro[(inst & 0x0F)];
-           if (inst>>4 & 0x03==1) // registro del 4to byte
+           if ((inst>>4 & 0x03)==1) // registro del 4to byte
              *mascaraA=LOW_MASK;
            else
-                 if (inst>>4 & 0x03==2) // registro del 3 byte
+                 if ((inst>>4 & 0x03)==2) // registro del 3 byte
                    *mascaraA=HIGH_MASK;
                 else //registro de 2 bytes
-                  if (inst>>4 & 0x03==3)
+                  if ((inst>>4 & 0x03)==3)
                     *mascaraA= REG_MASK;
                  //registro de 4 bytes (sale automatico)
         }
@@ -130,40 +130,44 @@ void ExtraerDosOperandos(int inst,int **A,int **B,int *C, int *D, int memoria[],
     *mascaraA=*mascaraB=EXTENDED_MASK;
     if ((inst>>26 & 0x03)==0){//Inmediato
         *C=inst>>12 & 0x0FFF;
+        *C<<=20; 
+        *C>>=20;
         *A=C; // tambien analizar si es char
    }
     else
-        if (inst>>26 & 0x03==2)//Directo
+        if ((inst>>26 & 0x03)==2)//Directo
             *A=&memoria[registro[DS]+(inst>>12 & 0x0FFF)];
         else{//Registro
            *A=&registro[(inst>>12 & 0x0F)];
-           if (inst>>16 & 0x03==1) // registro del 4to byte
+           if ((inst>>16 & 0x03)==1) // registro del 4to byte
              *mascaraA=LOW_MASK;
            else
-                 if (inst>>16 & 0x03==2) // registro del 3 byte
+                 if ((inst>>16 & 0x03)==2) // registro del 3 byte
                    *mascaraA=HIGH_MASK;
                 else //registro de 2 bytes
-                  if (inst>>16 & 0x03==3)
+                  if ((inst>>16 & 0x03)==3)
                     *mascaraA= REG_MASK;
                  //registro de 4 bytes (sale automatico)
         }
     //segundo operando
     if ((inst>>24 & 0x03)==0){//Inmediato
         *D=inst & 0x0FFF;
+        *D<<=20; 
+        *D>>=20;
         *B=D; // tambien analizar si es char
    }
     else
-        if (inst>>24 & 0x03==2)//Directo
+        if ((inst>>24 & 0x03)==2)//Directo
             *B=&memoria[registro[DS]+(inst & 0x0FFF)];
         else{//Registro
            *B=&registro[(inst & 0x0F)];
-           if (inst>>4 & 0x03==1) // registro del 4to byte
+           if ((inst>>4 & 0x03)==1) // registro del 4to byte
              *mascaraB=LOW_MASK;
            else
-                 if (inst>>4 & 0x03==2) // registro del 3 byte
+                 if ((inst>>4 & 0x03)==2) // registro del 3 byte
                    *mascaraB=HIGH_MASK;
                 else //registro de 2 bytes
-                  if (inst>>4 & 0x03==3)
+                  if ((inst>>4 & 0x03)==3)
                     *mascaraB= REG_MASK;
                  //registro de 4 bytes (sale automatico)
         }
@@ -199,7 +203,7 @@ void MUL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void DIV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
-     registroCC(auxA%auxB,registro);
+    registroCC(auxA%auxB,registro);
     set_value (A,auxA/auxB,mascaraA);
 }
 
@@ -249,50 +253,55 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 
 ////Funciones de 1 operando:
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    int i,j,longitud;
+    int i,j,k,longitud;
     char caracter[]={};
-    if (*A & mascaraA == 1){// lectura
-         i=memoria[DS+registro[EDX]];
-        while (i<=(registro[ECX]&REG_MASK)){ // preguntar si el valor que me da en el parentesis es un decimal
+    if (*A & mascaraA == 1){// lectura // revisar contadores
+         i=registro[EDX];
+        while (k<=(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
-                printf("[%d ]",i);
+                printf("[%4d ]",i);
             if ((registro[EAX]&0x0100)>>8==0){
                 if ((registro[EAX]&0x001)==1)
-                    scanf("%d",memoria[i]);
+                    scanf("%d",memoria[registro[DS]+i]);
                 if ((registro[EAX]&0x004)==1)
-                    scanf("%o",memoria[i]);
+                    scanf("%o",memoria[registro[DS]+i]);
                 if ((registro[EAX]&0x008)==1)
-                    scanf("%X",memoria[i]);
-                i++;
+                    scanf("%X",memoria[registro[DS]+i]);
+                k++;
             }
             else {
-                scanf("%c",caracter);
+                scanf("%s",caracter);
                 longitud=strlen(caracter);
                 j=0;
-                while (j<=longitud && i<=(registro[ECX]&REG_MASK)){
-                    memoria[i]=caracter[j];
-                    i++;    
+                while (j<longitud && k<=(registro[ECX]&REG_MASK)){
+                    memoria[registro[DS]+j]=caracter[j];
+                    k++;    
                 }
             }
         }
     }
     else 
-      if (*A & mascaraA == 2){ // escritura
-        i=memoria[DS+registro[EDX]];
-        while (i<=(registro[ECX]&REG_MASK)){ // preguntar si el valor que me da en el parentesis es un decimal
+      if ((*A & mascaraA) == 2){ // escritura
+        i=registro[EDX];
+        j=1;
+        while (j<=(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
-                printf("[%d ]",i);
+                printf("[%4d ]",i);
             if ((registro[EAX]&0x001)==1)
-                printf("%d ",memoria[i]);
+                printf("%d ",memoria[registro[DS]+i]);
             if ((registro[EAX]&0x004)==1)
-                printf("%o ",memoria[i]);
+                printf("%o ",memoria[registro[DS]+i]);
             if ((registro[EAX]&0x008)==1)
-                printf("%X ",memoria[i]);
+                printf("%X ",memoria[registro[DS]+i]);
             if ((registro[EAX]&0x010)>>4==1)
-                printf("%c ",(memoria[i]&0x0F));
+                if ((memoria[registro[DS]+i]&0x0FF<=31) || (memoria[registro[DS]+i]&0x0FF==127))
+                    printf(".");
+                else
+                    printf("%c ",(memoria[registro[DS]+i]&0x0FF));
             if ((registro[EAX]&0x0100)>>8==0)
                 printf("/n");
             i++;
+            j++;
         }
       }
       else
@@ -312,7 +321,7 @@ void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int re
 }
 
 void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]>>31)&0x80000001==0)
+    if ((registro[CC]&0x8000000)==0 && (registro[CC]&0x01)==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
@@ -327,26 +336,24 @@ void JNZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void JNP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if (registro[CC]&0x01==1 || (registro[CC]&0x80000000)>>31==1)
+    if ((registro[CC]&0x01==1 && (registro[CC]&0x80000000)==0) || ((registro[CC]&0x80000000)>>31==1 && (registro[CC]&0x1)==0))
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void JNN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if (registro[CC]&0x01==1 || (registro[CC]&0x80000000)>>31==0)
+    if ((registro[CC]&0x01==1 && (registro[CC]&0x80000000)==0) || ((registro[CC]&0x80000000)>>31==0 && (registro[CC]&0x01)==0))
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void LDH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     auxA<<=30;
-    mascaraA=0xC0000000;
-    set_value (&registro[AC],auxA,mascaraA);
+    set_value (&registro[AC],auxA,0xC0000000);
 }
 
 void LDL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    mascaraA=0x03; 
-    set_value (&registro[AC],auxA,mascaraA);
+    set_value (&registro[AC],auxA,0x03);
 }
 
 void RND(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
