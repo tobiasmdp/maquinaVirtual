@@ -28,7 +28,7 @@ int checkSalto(int mnemonico);
 int checkRotulo(char* operandoEnString, int mnemonico);
 void transformRotulo(char* operandoEnString, int mnemonico);
 void checkTruncado(int operando, int bits);
-void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]);
+void printeo(int dirMem, int instruccion, char* lineaParseada[]);
 void getHeader(int cantCeldas);
 
 int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1; //exito significa 0 errores
@@ -41,7 +41,7 @@ char* tablaRotulos[largoMemoria];
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
     int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0, cantCeldas;
-    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, **lineaParseadaOriginal = (char**) malloc(sizeof(lineaParseada));
+    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[5];
 
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
@@ -54,11 +54,7 @@ int main(int argc, char const *argv[]){
             instruccion=0;
 
             lineaParseada = parseline(linea);
-            memcpy(lineaParseadaOriginal, lineaParseada, sizeof(lineaParseada));
-
-
-            if (lineaParseada[0]) //si hay rotulo
-               // strcpy(rotuloOriginal,lineaParseada[0]); //se hace para el printeo, sino tendria el nro en string
+            for( int j = 0; j < 5; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
     
             mnemonico = getMnemonico(lineaParseada[1]);
             if (mnemonico < 0){
@@ -94,7 +90,7 @@ int main(int argc, char const *argv[]){
             tablaInstrucciones[dirMem] = instruccion; 
 
             if(argc <4 || (strcmp(argv[3],"-o") != 0))
-                //printeo(dirMem, instruccion, rotuloOriginal, lineaParseada);
+                printeo(dirMem, instruccion, lineaParseadaOriginal);
             
             dirMem++;
         }
@@ -299,12 +295,12 @@ void checkTruncado(int operando, int bits){
         }
 }
 
-void printeo(int dirMem, int instruccion, char* rotulo, char* lineaParseada[]){
+void printeo(int dirMem, int instruccion, char* lineaParseada[]){
     char coma[largoLinea]=";";
     if(lineaParseada[1]){ //tiene mnemonico --> no es comentario
         if (lineaParseada[0] != 0) //si tiene rotulo
             printf("[%04d]  %02x %02x %02x %02x %12s: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
-            rotulo, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
+            lineaParseada[0], lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
         else
             printf("[%04d]  %02x %02x %02x %02x %12d: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
