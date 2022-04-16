@@ -94,7 +94,7 @@ int main(int argc, char const *argv[]){
             
             dirMem++;
         }
-        getHeader(dirMem+1); //dirMem+1 = cantCeldas  
+        getHeader(dirMem); //dirMem+1 = cantCeldas  
         fclose(archT);
     }
     else
@@ -103,9 +103,11 @@ int main(int argc, char const *argv[]){
 
     if(exito)
         if ((archB = fopen(nombreArchB, "wb")) != NULL){
-            fwrite(header, sizeof(int), sizeof(header), archB);
-            fwrite(tablaInstrucciones, sizeof(int), dirMem+1, archB);
-            fclose(archB);
+            for (int i = 0; i < 6; i++)
+                fwrite(&(header[i]), sizeof(int), 1, archB);
+            for (int i = 0; i < dirMem; i++)
+                fwrite(&(tablaInstrucciones[i]), sizeof(int), 1, archB);
+            fclose(archB); 
         }
     return 0;
 }
