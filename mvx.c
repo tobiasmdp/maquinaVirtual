@@ -67,15 +67,16 @@ typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de func
 
 int p=0; /*si aparece p en el sys se cambia*/
 int pri=0;
-int main(int argc, char const *argv[]){
+int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB,valido=1;
     int memoria[TM]={0},registro[TR]={0};
-    T_fun* ArrayFunc[]={MOV,ADD,SUB,MUL,DIV,SWAP,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
+    T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     LeeArch(memoria,registro,&valido);
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
-        system("clr");
-    disassembler(registro,memoria);
+        system("cls");
+    if (checkFlag("-d"))
+        disassembler(registro,memoria);
     while (registro[IP]<registro[DS] && valido){
         indicef=0; 
         inst=memoria[registro[IP]];
@@ -104,12 +105,12 @@ int main(int argc, char const *argv[]){
 
 void LeeArch(int memoria[],int registro[],int *valido){
     FILE* arch;
-    arch=fopen("traducido5.mv1","rb");
+    arch=fopen("test1.mv1","rb");
     int header[6],i=0;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
 
-    fread(memoria+i,sizeof(int),1,arch);
+    fread(header+i,sizeof(int),1,arch);
     while(!feof(arch) && i<5){
         i++;
         fread(header+i,sizeof(int),1,arch);
@@ -122,11 +123,10 @@ void LeeArch(int memoria[],int registro[],int *valido){
     }
     registro[DS]=i;
 
-
-    if((char)(header[0]>>24&0x0FF)!='M' || (char)(header[0]>>16&0x0FF)!='V' || (char)(header[0]>>8&0x0FF)!='-' || (char)(header[0]&0x0FF)!='1' || registro[DS]!=header[1] || (char)(header[5]>>24&0x0FF)!='V' || (char)(header[5]>>16&0x0FF)!='.' || (char)(header[5]>>8&0x0FF)!='2' || (char)(header[5]&0x0FF)!='2') {
+   if((header[0]>>24&0x0FF)!='M' || (header[0]>>16&0x0FF)!='V' || (header[0]>>8&0x0FF)!='-' || (header[0]&0x0FF)!='1' || registro[DS]!=header[1] || (header[5]>>24&0x0FF)!='V' || (header[5]>>16&0x0FF)!='.' || (header[5]>>8&0x0FF)!='2' || (header[5]&0x0FF)!='2') {
        *valido=0;
         printf("El archivo no pudo ser validado");
-   }
+   } //problema header
 
     fclose(arch);
 }
@@ -296,7 +296,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         indice=registro[EDX];
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
-                printf("[%4d ]",(indice+cont));
+                printf("[%04d] ",(indice+cont));
             if ((registro[EAX]&0x0100)>>8==0){
                 if ((registro[EAX]&0x001)==1)
                     scanf("%d",memoria[registro[DS]+indice+cont]);
@@ -324,7 +324,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
-                printf("[%4d ]",(indice+cont));
+                printf("[%04d] ",(indice+cont));
             if ((registro[EAX]&0x001)==1)
                 printf("%d ",memoria[registro[DS]+indice+cont]);
             if ((registro[EAX]&0x004)==1)
@@ -337,14 +337,14 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 else
                     printf("%c ",(memoria[registro[DS]+indice+cont]&0x0FF));
             if ((registro[EAX]&0x0100)>>8==0)
-                printf("/n");
+                printf("\n");
             cont++;
         }
       }
       else
         if (*A & mascaraA == 15){ //breakpoint - flags
             if (checkFlag("-c"))
-                system("clr");
+                system("cls");
             if (checkFlag("-d")){
                 disassembler(registro,memoria);
             if (checkFlag("-b"))
@@ -362,8 +362,8 @@ void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int re
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
-void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]&0x8000000)==0 && (registro[CC]&0x01)==0)
+void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //ver bien estas condiciones
+    if ((registro[CC]&0x80000000)==0 && (registro[CC]&0x01)==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
@@ -452,16 +452,16 @@ void breakpoint(int registro[], int memoria[]){
 char sig[10];
 int aux,aux1;
     pri++;
-    printf("[%4d] cmd: ",registro[IP]-1);
+    printf("[%04d] cmd: ",registro[IP]-1);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
         dividenum(sig,&aux,&aux1);
         if (aux1==-1)
-          printf("[%4d] %x %d \n",aux,memoria[aux],memoria[aux]);
+          printf("[%04d] %X %d \n",aux,memoria[aux],memoria[aux]);
         else
           for (int i=aux;i<=aux1;i++)
-            printf("[%4d] %x %d \n",i,memoria[i],memoria[i]);
-        printf("[%4d] cmd: ",registro[IP]-1);
+            printf("[%04d] %X %d \n",i,memoria[i],memoria[i]);
+        printf("[%04d] cmd: ",registro[IP]-1);
         fgets(sig,10,stdin);
     }
     if (sig[0]=='p')
@@ -487,87 +487,84 @@ void dividenum(char sig[],int *aux, int *aux1){
     *aux1=atoi(cadaux1);
 }
 
-void disassembler(int registro[],int memoria[]){
-char* Mnemonicos[34]= {"MOV","ADD","SUB","MUL","DIV","SWAP","CMP","SHL","SHR","AND","OR","XOR","0","0","0","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","0","0","0","0","0","STOP"};
+void disassembler(int registro[],int memoria[]){ // ver impresion dessassembler
+char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","0","0","0","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","0","0","0","0","0","STOP"};
 char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
 int indiceM,indiceP,j,i=registro[IP];
     printf("Codigo: \n");
     while (i<registro[DS] && i<=10+registro[IP]){
         if (i==registro[IP])
             printf(">");
+        else
+            printf(" ");
         indiceM=0;
         if ((memoria[i]&0xF0000000)==0xF0000000){
             indiceM+=16;
             if((memoria[i]&0x0F000000)==0x0F000000){//0 OP 
                 indiceM+=16;
                 indiceM+=(memoria[i]>>20)&0x0F;
-                printf(" [%4d] %x %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+                printf(" [%04d] %08X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
             }
             else{//1 OP
                 indiceM+=(memoria[i]>>24)&0x00F;
-                printf(" [%4d] %x %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+                printf(" [%04d] %08X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
                   if ((memoria[i]>>22 & 0x03)==0)//Inmediato
                     printf("%d",(memoria[i]&0x0FFFF));
                   else
                     if ((memoria[i]>>22 & 0x03)==2)//Directo
-                      printf("[%d]",memoria[registro[DS]+(memoria[i] & 0x0FFFF)]);
+                      printf("[%d]",(memoria[i] & 0x0FFFF));
                     else{//Registro
                       if ((memoria[i]>>4 & 0x03)==0)
                         printf("E");
-                      else{
-                          printf ("%x",(memoria[i] & 0x0F));   
-                          if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
-                            printf("L");
-                          else
-                            if ((memoria[i]>>4 & 0x03)==2) // registro del 3 byte
-                              printf("H");
-                            else //registro de 2 bytes
-                              printf("X");
-                      }
+                      printf ("%X",(memoria[i] & 0x0F));   
+                        if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
+                          printf("L");
+                        else
+                          if ((memoria[i]>>4 & 0x03)==2) // registro del 3 byte
+                            printf("H");
+                          else //registro de 2 bytes
+                            printf("X");
                     }
             }
         }
         else{//2 OP
             indiceM+=(memoria[i]>>28)&0x0F;
-            printf(" [%4d] %x %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+            printf(" [%04d] %8X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
                   if ((memoria[i]>>26 & 0x03)==0)//Inmediato primer operando
                     printf("%d",((memoria[i]>>12)&0x0FFF));
                   else
                     if ((memoria[i]>>26 & 0x03)==2)//Directo
-                      printf("[%d]",memoria[registro[DS]+(memoria[i]>>12 & 0x0FFF)]);
+                      printf("[%d]",(memoria[i]>>12) & 0x0FFF);//aca hay algo
                     else{//Registro
                       if ((memoria[i]>>16 & 0x03)==0)
                         printf("E");
-                      else{
-                          printf ("%x",(memoria[i]>>12 & 0x0F));   
-                          if ((memoria[i]>>16 & 0x03)==1) // registro del 4to byte
-                            printf("L");
-                          else
-                            if ((memoria[i]>>16 & 0x03)==2) // registro del 3 byte
+                      printf ("%X",(memoria[i]>>12 & 0x0F));   
+                        if ((memoria[i]>>16 & 0x03)==1) // registro del 4to byte
+                          printf("L");
+                        else
+                          if ((memoria[i]>>16 & 0x03)==2) // registro del 3 byte
                               printf("H");
-                            else //registro de 2 bytes
+                          else //registro de 2 bytes
                               printf("X");
-                      }
                     }
                     printf(", ");
                     if ((memoria[i]>>24 & 0x03)==0)//Inmediato segudo operando
                       printf("%d",((memoria[i])&0x0FFF));
                     else
                       if ((memoria[i]>>24 & 0x03)==2)//Directo
-                        printf("[%d]",memoria[registro[DS]+(memoria[i] & 0x0FFF)]);
+                        printf("[%d]",(memoria[i] & 0x0FFF));
                       else{//Registro
                         if ((memoria[i]>>4 & 0x03)==0)
                           printf("E");
-                        else{
-                          printf ("%x",(memoria[i] & 0x0F));   
-                          if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
-                            printf("L");
-                          else
+                        printf ("%X",(memoria[i] & 0x0F));   
+                        if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
+                          printf("L");
+                        else
                             if ((memoria[i]>>4 & 0x03)==2) // registro del 3 byte
                               printf("H");
                             else //registro de 2 bytes
                               printf("X");
-                      }
+                      
                     }
         }
         printf("\n");
