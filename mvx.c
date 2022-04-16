@@ -105,7 +105,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 
 void LeeArch(int memoria[],int registro[],int *valido){
     FILE* arch;
-    arch=fopen("test1.mv1","rb");
+    arch=fopen(_argv[1],"rb");
     int header[6],i=0;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
@@ -225,6 +225,13 @@ void SUB(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     set_value (A,auxA-auxB,mascaraA);
 }
 
+
+void SWAP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int aux=get_value(A,mascaraA);
+    set_value(A,get_value(B,mascaraB),mascaraA);
+    set_value(B,aux,mascaraB);
+}
+
 void MUL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
@@ -237,12 +244,6 @@ void DIV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     int auxB=get_value(B,mascaraB);
     registroCC(auxA%auxB,registro);
     set_value (A,auxA/auxB,mascaraA);
-}
-
-void SWAP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    int aux=get_value(A,mascaraA);
-    set_value(A,get_value(B,mascaraB),mascaraA);
-    set_value(B,aux,mascaraB);
 }
 
 void CMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -571,9 +572,10 @@ int indiceM,indiceP,j,i=registro[IP];
         i++;
     }
     printf("Registro \n");
-        for(j=0;j<16;j++){
-            if (strcmp(Procesador[j]," ")!=0)
-              printf("%s:  %d",Procesador[j],registro[j]);
-            printf("\n");
+    for(j=0;j<16;j++){
+        if (strcmp(Procesador[j]," ")!=0)
+            printf("%s:  %d",Procesador[j],registro[j]);
+        printf(" | ");
         }
+    printf("\n");
 }
