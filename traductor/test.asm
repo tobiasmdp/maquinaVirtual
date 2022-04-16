@@ -1,3 +1,4 @@
+add 22, [11]
 mov [10], 0 ;inicializo variables
 mov [20], 1
 otro: cmp [20], 100 ;compara
@@ -8,5 +9,4 @@ mov ecx, 1
 mov edx, 10
 sys 2 ;print [10] en decimal
 jmp otro
-add [20], [10]
 fin: stop
