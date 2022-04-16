@@ -14,5 +14,6 @@ int main(int argc, char const *argv[])
             fread(&instruccion,sizeof(int), 1, archB);
         }
     }
+    fclose(archB);
     return 0;
 }
