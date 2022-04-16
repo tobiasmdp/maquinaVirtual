@@ -102,20 +102,24 @@ int main(int argc, char const *argv[]){
 
     if(exito)
         if ((archB = fopen(nombreArchB, "wb")) != NULL){
-            int entero= 0x1a01f00f;
-            fwrite(&(entero), sizeof(int), 1, archB);
+            // int entero= 0x1a01f00f;
+            // fwrite(&(entero), sizeof(int), 1, archB);
+
+            /*
             for (int i = 0; i < 6; i++)
                 fwrite(&(header[i]), sizeof(int), 1, archB);
             for (int i = 0; i < dirMem; i++)
                 fwrite(&(tablaInstrucciones[i]), sizeof(int), 1, archB);
+            */
+            fwrite(header, sizeof(int), 6, archB);
+            fwrite(tablaInstrucciones, sizeof(int), dirMem, archB);
             fclose(archB); 
         }
 // borrar lo siguiente
     printf("   DECIMAL    |    HEXA\n");
-    if ((archB = fopen(argv[2], "r")) != NULL){
+    if ((archB = fopen(argv[2], "rb")) != NULL){
         fread(&instruccion,sizeof(instruccion), 1, archB);
-        //while (!feof(archB)){ 
-        for(int i=0; i<22;i++){
+        while (!feof(archB)){ 
             printf("%15d %02X %02X %02X %02X\n", instruccion,(instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF);
             fread(&instruccion,sizeof(int), 1, archB);
         }
@@ -329,9 +333,9 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
 
 void getHeader(int cantCeldas){
     header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'1');
-    header[1]=0;
+    header[1]=cantCeldas;
     header[2]=0;
     header[3]=0;
-    header[4]=cantCeldas;
+    header[4]=0;
     header[5]=((int)'V'<<24 | (int)'.'<<16 | (int)'2'<<8 | (int)'2');
 }
