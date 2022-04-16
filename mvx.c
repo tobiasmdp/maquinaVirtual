@@ -23,7 +23,7 @@
 
 /*----------------------------------------------Prototipos----------------------------------------------------------------*/
 
-void LeeArch(int[],int[]);
+void LeeArch(int[],int[],int*);
 void ExtraerUnOperando(int ,int**,int*, int[] ,int [],int *);
 void ExtraerDosOperandos(int ,int** ,int** ,int*,int *, int[] ,int [],int *,int *);
 
@@ -66,17 +66,17 @@ typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de func
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
 
 int p=0; /*si aparece p en el sys se cambia*/
-
+int pri=0;
 int main(int argc, char const *argv[]){
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
-    int *A,*B,C,D,mascaraA,mascaraB;
+    int *A,*B,C,D,mascaraA,mascaraB,valido=1;
     int memoria[TM]={0},registro[TR]={0};
     T_fun* ArrayFunc[]={MOV,ADD,SUB,MUL,DIV,SWAP,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
-    LeeArch(memoria,registro);
+    LeeArch(memoria,registro,&valido);
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("clr");
     disassembler(registro,memoria);
-    while (registro[IP]<registro[DS]){
+    while (registro[IP]<registro[DS] && valido){
         indicef=0; 
         inst=memoria[registro[IP]];
         registro[IP]++;
@@ -96,24 +96,38 @@ int main(int argc, char const *argv[]){
             indicef+=(inst>>28)&0x0F;
         }
         (*ArrayFunc[indicef])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
-        if (checkFlag("-b") && p==1)
+        if (checkFlag("-b") && p==1 && pri>1)
             breakpoint(registro,memoria);
     }     
     return 0;
 }
 
-void LeeArch(int memoria[],int registro[]){
+void LeeArch(int memoria[],int registro[],int *valido){
     FILE* arch;
     arch=fopen("traducido5.mv1","rb");
-    int i=0;
+    int header[6],i=0;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
+
+    fread(memoria+i,sizeof(int),1,arch);
+    while(!feof(arch) && i<5){
+        i++;
+        fread(header+i,sizeof(int),1,arch);
+    }
+    i=0;
     fread(memoria+i,sizeof(int),1,arch);
     while(!feof(arch)){
         i++;
         fread(memoria+i,sizeof(int),1,arch);
     }
     registro[DS]=i;
+
+
+    if((char)(header[0]>>24&0x0FF)!='M' || (char)(header[0]>>16&0x0FF)!='V' || (char)(header[0]>>8&0x0FF)!='-' || (char)(header[0]&0x0FF)!='1' || registro[DS]!=header[1] || (char)(header[5]>>24&0x0FF)!='V' || (char)(header[5]>>16&0x0FF)!='.' || (char)(header[5]>>8&0x0FF)!='2' || (char)(header[5]&0x0FF)!='2') {
+       *valido=0;
+        printf("El archivo no pudo ser validado");
+   }
+
     fclose(arch);
 }
 
@@ -437,6 +451,7 @@ int checkFlag(char flag[]){ //ojo aca con el paso de parametros
 void breakpoint(int registro[], int memoria[]){
 char sig[10];
 int aux,aux1;
+    pri++;
     printf("[%4d] cmd: ",registro[IP]-1);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
