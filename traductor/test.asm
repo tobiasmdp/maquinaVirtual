@@ -1,3 +1,6 @@
+
+;inicializo variables
+
 add [31], [‘B]
 mov [10], 0 ;inicializo variables
 mov [20], 1
@@ -7,6 +10,6 @@ swap [10], [20]
 mov eax, %001
 mov ecx, 1
 mov edx, 10
-sys F ;print [10] en decimal
+sys %F ;print [10] en decimal
 jmp otro
 fin: stop

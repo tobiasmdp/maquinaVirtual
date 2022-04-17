@@ -51,48 +51,56 @@ int main(int argc, char const *argv[]){
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
-            instruccion=0;
 
             lineaParseada = parseline(linea);
-            for( int j = 0; j < 5; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
-    
-            mnemonico = getMnemonico(lineaParseada[1]);
-            if (mnemonico < 0){
-                instruccion = 0xFFFFFFFF;
-                printf("Error de Sintaxis");
-                exito=0;
-            }
-            else if (mnemonico >= 0x0 && mnemonico <= 0xB){ //2 OP
-                instruccion = mnemonico<<28;
-                tipoOperando1 = getTipoOperando(lineaParseada[2]);
-                tipoOperando2 = getTipoOperando(lineaParseada[3]);
-                instruccion |= tipoOperando1<<26;
-                instruccion |= tipoOperando2<<24;
-                operando1 = getOperando(tipoOperando1, lineaParseada[2]);
-                operando2 = getOperando(tipoOperando2, lineaParseada[3]);
-                checkTruncado(operando1,12);
-                checkTruncado(operando2,12);
-                instruccion |= (operando1<<12)&0x00FFF000;
-                instruccion |= (operando2)&0x00000FFF;
-            }
-            else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
-                transformRotulo(lineaParseada[2], mnemonico);
-                instruccion = mnemonico<<24;
-                tipoOperando1 = getTipoOperando(lineaParseada[2]);
-                instruccion |= tipoOperando1<<22;
-                operando1 = getOperando(tipoOperando1, lineaParseada[2]);
-                checkTruncado(operando1,12);
-                instruccion |= (operando1)&0x0000FFFF;
-            }
-            else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
-                instruccion = mnemonico<<20;
-            }
-            tablaInstrucciones[dirMem] = instruccion; 
-
-            if(argc <4 || (strcmp(argv[3],"-o") != 0))
-                printeo(dirMem, instruccion, lineaParseadaOriginal);
             
-            dirMem++;
+            if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion
+                instruccion=0;
+
+                for( int j = 0; j < 5; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
+        
+                mnemonico = getMnemonico(lineaParseada[1]);
+                if (mnemonico < 0){
+                    instruccion = 0xFFFFFFFF;
+                    printf("Error de Sintaxis");
+                    exito=0;
+                }
+                else if (mnemonico >= 0x0 && mnemonico <= 0xB){ //2 OP
+                    instruccion = mnemonico<<28;
+                    tipoOperando1 = getTipoOperando(lineaParseada[2]);
+                    tipoOperando2 = getTipoOperando(lineaParseada[3]);
+                    instruccion |= tipoOperando1<<26;
+                    instruccion |= tipoOperando2<<24;
+                    operando1 = getOperando(tipoOperando1, lineaParseada[2]);
+                    operando2 = getOperando(tipoOperando2, lineaParseada[3]);
+                    checkTruncado(operando1,12);
+                    checkTruncado(operando2,12);
+                    instruccion |= (operando1<<12)&0x00FFF000;
+                    instruccion |= (operando2)&0x00000FFF;
+                }
+                else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
+                    transformRotulo(lineaParseada[2], mnemonico);
+                    instruccion = mnemonico<<24;
+                    tipoOperando1 = getTipoOperando(lineaParseada[2]);
+                    instruccion |= tipoOperando1<<22;
+                    operando1 = getOperando(tipoOperando1, lineaParseada[2]);
+                    checkTruncado(operando1,12);
+                    instruccion |= (operando1)&0x0000FFFF;
+                }
+                else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
+                    instruccion = mnemonico<<20;
+                }
+                tablaInstrucciones[dirMem] = instruccion; 
+
+                if(argc <4 || (strcmp(argv[3],"-o") != 0))
+                    printeo(dirMem, instruccion, lineaParseadaOriginal);
+                
+                dirMem++;
+            }
+            else //se considera una linea q vacia o de comentario
+                if(lineaParseada[4] != 0)
+                    printf("\n%s\n",lineaParseada[4]);
+            freeline(lineaParseada);
         }
         getHeader(dirMem); //dirMem+1 = cantCeldas  
         fclose(archT);
@@ -107,7 +115,7 @@ int main(int argc, char const *argv[]){
             fclose(archB); 
         }
 // borrar lo siguiente
-    printf("   DECIMAL    |    HEXA\n");
+    printf("\n\n\n------------------------------\n   DECIMAL    |    HEXA\n");
     if ((archB = fopen(argv[2], "rb")) != NULL){
         fread(&instruccion,sizeof(instruccion), 1, archB);
         while (!feof(archB)){ 
