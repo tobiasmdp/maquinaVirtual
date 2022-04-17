@@ -100,6 +100,7 @@ int main(int argc, char const *argv[]){
             else //se considera una linea q vacia o de comentario
                 if(lineaParseada[4] != 0)
                     printf("\n%s\n",lineaParseada[4]);
+                    
             freeline(lineaParseada);
         }
         getHeader(dirMem); //dirMem+1 = cantCeldas  
@@ -114,17 +115,7 @@ int main(int argc, char const *argv[]){
             fwrite(tablaInstrucciones, sizeof(int), dirMem, archB);
             fclose(archB); 
         }
-// borrar lo siguiente
-    printf("\n\n\n------------------------------\n   DECIMAL    |    HEXA\n");
-    if ((archB = fopen(argv[2], "rb")) != NULL){
-        fread(&instruccion,sizeof(instruccion), 1, archB);
-        while (!feof(archB)){ 
-            printf("%15d %02X %02X %02X %02X\n", instruccion,(instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF);
-            fread(&instruccion,sizeof(int), 1, archB);
-        }
-    }
-    fclose(archB);
-// hasta aca
+
     return 0;
 }
 
