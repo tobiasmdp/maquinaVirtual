@@ -1,1 +1,1 @@
-fin: stop
+mov eax, %001

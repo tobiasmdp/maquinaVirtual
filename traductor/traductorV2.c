@@ -102,15 +102,6 @@ int main(int argc, char const *argv[]){
 
     if(exito)
         if ((archB = fopen(nombreArchB, "wb")) != NULL){
-            // int entero= 0x1a01f00f;
-            // fwrite(&(entero), sizeof(int), 1, archB);
-
-            /*
-            for (int i = 0; i < 6; i++)
-                fwrite(&(header[i]), sizeof(int), 1, archB);
-            for (int i = 0; i < dirMem; i++)
-                fwrite(&(tablaInstrucciones[i]), sizeof(int), 1, archB);
-            */
             fwrite(header, sizeof(int), 6, archB);
             fwrite(tablaInstrucciones, sizeof(int), dirMem, archB);
             fclose(archB); 
@@ -170,7 +161,8 @@ int checkCaracter(char* cadena){ //mira si el string es solo de caracteres alfab
 }
 
 int checkInmediato(char* cadena){  
-    if (cadena[0] == '%' || cadena[0] == '#' || cadena[0] == '@' || cadena[0] == '$')
+
+    if (cadena[0] == '%' || cadena[0] == '#' || cadena[0] == '@' || cadena[0] == '$' || strncmp(cadena,"‘",3) == 0) //la comilla puede ser confundida
         return 1;
     if (checkNumeric(cadena))
         return 1;
@@ -236,6 +228,11 @@ int operandoRegistro(char *operandoEnString){
     }
 }
 
+
+/* 
+https://stackoverflow.com/questions/59838304/how-can-i-change-an-apostrophe-into-a-single-unit-instead-of-3-bytes-342-200
+el apostrofe ocupa 3 bytes
+*/
 int getOperando(int tipoOperando, char* operandoEnString){
     char operandoAux[64];
     char* cono; 
@@ -244,9 +241,13 @@ int getOperando(int tipoOperando, char* operandoEnString){
     }
     if (tipoOperando == TODirecto){
         removeCorchetes(operandoEnString, operandoAux);
+        if (strncmp(operandoAux,"‘",3) == 0)
+            return (int)operandoAux[3];
         return anyToInt(operandoAux, &cono);
     }
     if (tipoOperando == TOInmediato){
+        if (strncmp(operandoEnString,"‘",3) == 0)
+            return (int)operandoEnString[3];
         return anyToInt(operandoEnString, &cono); 
     }
 }
