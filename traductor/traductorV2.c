@@ -176,14 +176,14 @@ int checkDirecto(char* cadena){
 
 int checkRegistro(char* cadena){
     int largoCadena = strlen(cadena);
-    char cadenaAux[3];
-    int largoCadenaAux = largoCadena;
+    char cadenaAux[10];
     
     strcpy(cadenaAux, cadena);
 
-    for (int i=0; i < largoCadenaAux; i++)
-        toupper(cadenaAux[i]);
-
+    for (int i=0; i < largoCadena; i++){
+        cadenaAux[i] = toupper(cadena[i]);
+    }
+        
     if (largoCadena == 2)
         if (cadenaAux[0] >= 'A' && cadenaAux[0] <= 'F')
             return 1;

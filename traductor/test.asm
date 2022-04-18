@@ -1,5 +1,5 @@
+xor ebx, EBX
 jmp lee
-xor EBX, EBX 
 lee: mov EDX, 1 
 mov ECX, 1 
 mov EAX, %001 
