@@ -1,4 +1,5 @@
 Mov [9], 0
+SYS %F
 Mov [10], 0
 Mov [11], 0
 Mov [12], 0
@@ -16,6 +17,7 @@ Mov edx, 9
 Sys 1
 Jmp otro
 Afuera: div [11], [12]
+SYS %F
 Mov eax, %001
 Mov ecx, 1
 Mov edx, 11

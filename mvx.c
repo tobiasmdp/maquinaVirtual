@@ -98,8 +98,13 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
             indicef+=(inst>>28)&0x0F;
         }
         (*ArrayFunc[indicef])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
-        if (checkFlag("-b") && p==1 && pri>1)
+        if (checkFlag("-b") && p==1 && pri>1){
+            system("cls");
+            disassembler(registro,memoria);
             breakpoint(registro,memoria);
+        }
+        if(pri==1)
+             pri++;
     }     
     return 0;
 }
@@ -246,8 +251,9 @@ void MUL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void DIV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
-    registroCC(auxA%auxB,registro);
+    registroCC(auxA/auxB,registro);
     set_value (A,auxA/auxB,mascaraA);
+    set_value (registro+AC,auxA%auxB,mascaraA);
 }
 
 void CMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -331,11 +337,11 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             if ((registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
             if ((registro[EAX]&0x001)==1)
-                printf("%d ",memoria[registro[DS]+indice+cont]);
+                printf("%4d ",memoria[registro[DS]+indice+cont]);
             if ((registro[EAX]&0x004)==1)
-                printf("%o ",memoria[registro[DS]+indice+cont]);
+                printf("%4o ",memoria[registro[DS]+indice+cont]);
             if ((registro[EAX]&0x008)==1)
-                printf("%X ",memoria[registro[DS]+indice+cont]);
+                printf("%08X ",memoria[registro[DS]+indice+cont]);
             if ((registro[EAX]&0x010)>>4==1)
                 if ((memoria[registro[DS]+indice+cont]&0x0FF<=31) || (memoria[registro[DS]+indice+cont]&0x0FF==127))
                     printf(".");
@@ -347,7 +353,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
       }
       else
-        if (*A & mascaraA == 15){ //breakpoint - flags
+        if ((*A & mascaraA) == 15){ //breakpoint - flags
             if (checkFlag("-c"))
                 system("cls");
             if (checkFlag("-d")){
@@ -457,7 +463,7 @@ int checkFlag(char bandera []){ //ojo aca con el paso de parametros
 void breakpoint(int registro[], int memoria[]){
 char sig[10];
 int aux,aux1;
-    pri++;
+    
     printf("[%04d] cmd: ",registro[IP]-1);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
@@ -466,28 +472,34 @@ int aux,aux1;
           printf("[%04d] %X %d \n",aux,memoria[aux],memoria[aux]);
         else
           for (int i=aux;i<=aux1;i++)
-            printf("[%04d] %X %d \n",i,memoria[i],memoria[i]);
+            printf("[%04d] %08X %4d \n",i,memoria[i],memoria[i]);
         printf("[%04d] cmd: ",registro[IP]-1);
         fgets(sig,10,stdin);
     }
-    if (sig[0]=='p')
+    if (sig[0]=='p'){
       p=1;
+      pri++;
+    }
     else
       p=0;
 }
 
 void dividenum(char sig[],int *aux, int *aux1){
-    char cadaux[5],cadaux1[5]="-1";
-    int i=0,maxcad=strlen(sig);
+    char cadaux[10],cadaux1[10]="-1";
+    int i=0,j=0,maxcad=strlen(sig);
     while (i<=maxcad && sig[i]!=' '){
      cadaux[i]=sig[i];
      i++;
      }
+     cadaux[i]='\0';
      if (i<=maxcad && sig[i]==' '){
+         i++;
          while (i<=maxcad){
-          cadaux1[i-5]=sig[i];
+          cadaux1[j]=sig[i];
+          j++;
           i++;
         }
+     cadaux1[j]='\0';
      }
     *aux=atoi(cadaux);
     *aux1=atoi(cadaux1);
@@ -498,7 +510,11 @@ char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","A
 char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
 int indiceM,indiceP,j,i=registro[IP];
     printf("Codigo: \n");
-    while (i<registro[DS] && i<10+registro[IP]){
+    if(i>5)
+        i-=5;
+    else
+        i=0;
+    while (i<registro[DS] && i<5+registro[IP]){
         if (i==registro[IP])
             printf(">");
         else

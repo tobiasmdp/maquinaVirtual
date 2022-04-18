@@ -12,7 +12,7 @@ Mov [5], 0
 Mov eax, 0
 For: CMP [3], [5]
 Jz afuera
-Add [AX], [2]
+Add AX, [2]
 Add [5], 1
 Jmp for
 afuera: mov [6], EAX
