@@ -87,7 +87,7 @@ int main(int argc, char const *argv[]){
                     checkTruncado(operando1,12);
                     instruccion |= (operando1)&0x0000FFFF;
                 }
-                else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //2 OP
+                else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //0 OP
                     instruccion = mnemonico<<20;
                 }
                 tablaInstrucciones[dirMem] = instruccion; 
@@ -100,7 +100,7 @@ int main(int argc, char const *argv[]){
             else //se considera una linea q vacia o de comentario
                 if(lineaParseada[4] != 0)
                     printf("\n%s\n",lineaParseada[4]);
-                    
+
             freeline(lineaParseada);
         }
         getHeader(dirMem); //dirMem+1 = cantCeldas  
@@ -180,7 +180,9 @@ int checkRegistro(char* cadena){
         if ((cadena[0] >= 'A' && cadena[0] <= 'F') || (cadena[0] >= 'a' && cadena[0] <= 'f'))
             return 1;
     if (largoCadena == 3)
-        if ((cadena[1] >= 'A' && cadena[1] <= 'F') || (cadena[1] >= 'a' && cadena[1] <= 'f'))
+        if (cadena[0] >= 'E'
+        && ((cadena[1] >= 'A' && cadena[1] <= 'F') || (cadena[1] >= 'a' && cadena[1] <= 'f')) 
+        && (cadena[2] == 'X' || cadena[2] == 'H' || cadena[2] == 'L'))
             return 1;
     return 0;
 }
