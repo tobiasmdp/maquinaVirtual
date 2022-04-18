@@ -70,11 +70,12 @@ int pri=0;
 int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB,valido=1;
-    int memoria[TM]={0},registro[TR]={0};
+    int memoria[TM],registro[TR]={0};
     T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
-    LeeArch(memoria,registro,&valido);
+    
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("cls");
+    LeeArch(memoria,registro,&valido);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
     while (registro[IP]<registro[DS] && valido){
@@ -126,7 +127,10 @@ void LeeArch(int memoria[],int registro[],int *valido){
    if((header[0]>>24&0x0FF)!='M' || (header[0]>>16&0x0FF)!='V' || (header[0]>>8&0x0FF)!='-' || (header[0]&0x0FF)!='1' || registro[DS]!=header[1] || (header[5]>>24&0x0FF)!='V' || (header[5]>>16&0x0FF)!='.' || (header[5]>>8&0x0FF)!='2' || (header[5]&0x0FF)!='2') {
        *valido=0;
         printf("El archivo no pudo ser validado");
-   } //problema header
+    } 
+    else{
+        printf("El archivo fue validado\n");
+    }
 
     fclose(arch);
 }
@@ -293,18 +297,18 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud;
     char caracter[]={};
-    if (*A & mascaraA == 1){// lectura // revisar contadores
+    if ((*A & mascaraA) == 1){// lectura // revisar contadores
         indice=registro[EDX];
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
-                printf("[%04d] ",(indice+cont));
+                printf("[%04d]: ",(indice+cont));
             if ((registro[EAX]&0x0100)>>8==0){
                 if ((registro[EAX]&0x001)==1)
-                    scanf("%d",memoria[registro[DS]+indice+cont]);
+                    scanf("%d",memoria+(registro[DS]+indice+cont));
                 if ((registro[EAX]&0x004)==1)
-                    scanf("%o",memoria[registro[DS]+indice+cont]);
+                    scanf("%o",memoria+(registro[DS]+indice+cont));
                 if ((registro[EAX]&0x008)==1)
-                    scanf("%X",memoria[registro[DS]+indice+cont]);
+                    scanf("%X",memoria+(registro[DS]+indice+cont));
                 cont++;
             }
             else {
@@ -325,7 +329,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
-                printf("[%04d] ",(indice+cont));
+                printf("[%04d]: ",(indice+cont));
             if ((registro[EAX]&0x001)==1)
                 printf("%d ",memoria[registro[DS]+indice+cont]);
             if ((registro[EAX]&0x004)==1)
@@ -374,17 +378,17 @@ void JN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int re
 }
 
 void JNZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if (registro[CC]&0x01==0)
+    if ((registro[CC]&0x01)==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void JNP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]&0x01==1 && (registro[CC]&0x80000000)==0) || ((registro[CC]&0x80000000)>>31==1 && (registro[CC]&0x1)==0))
+    if (((registro[CC]&0x01)==1 && (registro[CC]&0x80000000)==0) || ((registro[CC]&0x80000000)>>31==1 && (registro[CC]&0x1)==0))
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 void JNN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if ((registro[CC]&0x01==1 && (registro[CC]&0x80000000)==0) || ((registro[CC]&0x80000000)>>31==0 && (registro[CC]&0x01)==0))
+    if (((registro[CC]&0x01)==1 && ((registro[CC]&0x80000000))==0) || ((registro[CC]&0x80000000)>>31==0 && (registro[CC]&0x01)==0))
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
@@ -442,11 +446,12 @@ void set_value (int *a,int value, int mask){
     *a = *a | (value & mask);
 }
 
-int checkFlag(char flag[]){ //ojo aca con el paso de parametros
+
+int checkFlag(char bandera []){ //ojo aca con el paso de parametros
     int i=0;
-    while (i<=_argc && strcmp(_argv[i],flag)==0)
+    while (i<_argc && strcmp(_argv[i],bandera)!=0)
         i++;
-    return (i>_argc)?0:1;
+    return (i==_argc)?0:1;
 }
 
 void breakpoint(int registro[], int memoria[]){
@@ -493,7 +498,7 @@ char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","A
 char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
 int indiceM,indiceP,j,i=registro[IP];
     printf("Codigo: \n");
-    while (i<registro[DS] && i<=10+registro[IP]){
+    while (i<registro[DS] && i<10+registro[IP]){
         if (i==registro[IP])
             printf(">");
         else
@@ -504,16 +509,16 @@ int indiceM,indiceP,j,i=registro[IP];
             if((memoria[i]&0x0F000000)==0x0F000000){//0 OP 
                 indiceM+=16;
                 indiceM+=(memoria[i]>>20)&0x0F;
-                printf(" [%04d] %08X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+                printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
             }
             else{//1 OP
                 indiceM+=(memoria[i]>>24)&0x00F;
-                printf(" [%04d] %08X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+                printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
                   if ((memoria[i]>>22 & 0x03)==0)//Inmediato
-                    printf("%d",(memoria[i]&0x0FFFF));
+                    printf("%3d",(memoria[i]&0x0FFFF));
                   else
                     if ((memoria[i]>>22 & 0x03)==2)//Directo
-                      printf("[%d]",(memoria[i] & 0x0FFFF));
+                      printf("[%2d]",(memoria[i] & 0x0FFFF));
                     else{//Registro
                       if ((memoria[i]>>4 & 0x03)==0)
                         printf("E");
@@ -530,12 +535,12 @@ int indiceM,indiceP,j,i=registro[IP];
         }
         else{//2 OP
             indiceM+=(memoria[i]>>28)&0x0F;
-            printf(" [%04d] %8X %d %s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
+            printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
                   if ((memoria[i]>>26 & 0x03)==0)//Inmediato primer operando
-                    printf("%d",((memoria[i]>>12)&0x0FFF));
+                    printf("%3d",((memoria[i]>>12)&0x0FFF));
                   else
                     if ((memoria[i]>>26 & 0x03)==2)//Directo
-                      printf("[%d]",(memoria[i]>>12) & 0x0FFF);//aca hay algo
+                      printf("[%2d]",(memoria[i]>>12) & 0x0FFF);//aca hay algo
                     else{//Registro
                       if ((memoria[i]>>16 & 0x03)==0)
                         printf("E");
@@ -547,13 +552,14 @@ int indiceM,indiceP,j,i=registro[IP];
                               printf("H");
                           else //registro de 2 bytes
                               printf("X");
+                      printf(" ");
                     }
                     printf(", ");
                     if ((memoria[i]>>24 & 0x03)==0)//Inmediato segudo operando
-                      printf("%d",((memoria[i])&0x0FFF));
+                      printf("%3d",((memoria[i])&0x0FFF));
                     else
                       if ((memoria[i]>>24 & 0x03)==2)//Directo
-                        printf("[%d]",(memoria[i] & 0x0FFF));
+                        printf("[%2d]",(memoria[i] & 0x0FFF));
                       else{//Registro
                         if ((memoria[i]>>4 & 0x03)==0)
                           printf("E");
@@ -574,7 +580,9 @@ int indiceM,indiceP,j,i=registro[IP];
     printf("Registro \n");
     for(j=0;j<16;j++){
         if (strcmp(Procesador[j]," ")!=0)
-            printf("%s:  %d",Procesador[j],registro[j]);
+            printf("%3s:  %8d",Procesador[j],registro[j]);
+        else
+            printf("              ");
         printf(" | ");
         }
     printf("\n");
