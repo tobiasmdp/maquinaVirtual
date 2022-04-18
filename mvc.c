@@ -75,6 +75,14 @@ int main(int argc, char const *argv[]){
                     operando2 = getOperando(tipoOperando2, lineaParseada[3]);
                     checkTruncado(operando1,12);
                     checkTruncado(operando2,12);
+                    if (tipoOperando1==0){
+                        operando1<<=20;
+                        operando1>>=20;
+                    }
+                    if (tipoOperando2==0){
+                        operando2<<=20;
+                        operando2>>=20;
+                    }
                     instruccion |= (operando1<<12)&0x00FFF000;
                     instruccion |= (operando2)&0x00000FFF;
                 }
@@ -85,6 +93,10 @@ int main(int argc, char const *argv[]){
                     instruccion |= tipoOperando1<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
                     checkTruncado(operando1,12);
+                    if (tipoOperando1==0){
+                        operando1<<=16;
+                        operando1>>=16;
+                    }
                     instruccion |= (operando1)&0x0000FFFF;
                 }
                 else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //0 OP
@@ -137,10 +149,12 @@ int getMnemonico(char* cadena){ //-1  no encontro el mnemonico
 
 
 int checkNumeric(char* cadena){ //se fija si es un numero valido || return 0 (false), return 1 (true) 
-    int lenCadena = strlen(cadena);
+    int lenCadena = strlen(cadena), i=0;
     if (lenCadena == 0)
         return 0;
-    for (int i=0; i < lenCadena; i++){
+    if (cadena[0]=='-')
+       i++;
+    for (i; i < lenCadena; i++){
         if (cadena[i] < '0')
             return 0; 
         if ( cadena[i] > '9')
@@ -242,7 +256,7 @@ int operandoRegistro(char *operandoEnString){
 https://stackoverflow.com/questions/59838304/how-can-i-change-an-apostrophe-into-a-single-unit-instead-of-3-bytes-342-200
 el apostrofe ocupa 3 bytes
 */
-int getOperando(int tipoOperando, char* operandoEnString){
+int getOperando(int tipoOperando, char operandoEnString[]){
     char operandoAux[64];
     char* cono; 
     if (tipoOperando == TORegistro){
@@ -315,11 +329,11 @@ void transformRotulo(char* operandoEnString, int mnemonico){
 
 void checkTruncado(int operando, int bits){
     if (bits == 16)
-        if ((operando & 0xFFFF0000) != 0){
+        if ((operando & 0xFFFF0000) != 0 && (operando & 0xFFFF0000)!=0XFFFF0000){
             printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
         }
     if (bits == 12)
-                if ((operando & 0xFFFFF000) != 0){
+                if ((operando & 0xFFFFF000) != 0  && (operando & 0xFFFFF000)!=0XFFFFF000){
             printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
         }
 }

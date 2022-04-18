@@ -99,8 +99,10 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
         }
         (*ArrayFunc[indicef])(A,mascaraA,B,C,D,mascaraB,memoria,registro); //FUNCIONAL
         if (checkFlag("-b") && p==1 && pri>1){
-            system("cls");
-            disassembler(registro,memoria);
+            if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
+                system("cls");
+            if (checkFlag("-d"))
+                disassembler(registro,memoria);
             breakpoint(registro,memoria);
         }
         if(pri==1)
@@ -143,10 +145,11 @@ void LeeArch(int memoria[],int registro[],int *valido){
 /*-----------------------------------------------------Extraccion operandos------------------------------------------------------*/
 
 void ExtraerUnOperando(int inst,int **A,int *C, int memoria[],int registro[],int *mascaraA){
+    *mascaraA=EXTENDED_MASK;
     if ((inst>>22 & 0x03)==0){//Inmediato
         *C=inst & 0x0FFFF;
-        *C<<=20; 
-        *C>>=20;
+        *C<<=16; 
+        *C>>=16;
         *A=C;
    }
     else
@@ -400,13 +403,13 @@ void JNN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 
 void LDH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    auxA<<=30;
-    set_value (&registro[AC],auxA,0xC0000000);
+    auxA<<=8;
+    set_value (&registro[AC],auxA,0xFFFF0000);
 }
 
 void LDL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    set_value (&registro[AC],auxA,0x03);
+    set_value (&registro[AC],auxA,0x0FFFF);
 }
 
 void RND(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -508,7 +511,7 @@ void dividenum(char sig[],int *aux, int *aux1){
 void disassembler(int registro[],int memoria[]){ // ver impresion dessassembler
 char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","0","0","0","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","0","0","0","0","0","STOP"};
 char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
-int indiceM,indiceP,j,i=registro[IP];
+int indiceM,indiceP,j,i=registro[IP],aux;
     printf("Codigo: \n");
     if(i>5)
         i-=5;
@@ -530,8 +533,12 @@ int indiceM,indiceP,j,i=registro[IP];
             else{//1 OP
                 indiceM+=(memoria[i]>>24)&0x00F;
                 printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
-                  if ((memoria[i]>>22 & 0x03)==0)//Inmediato
-                    printf("%3d",(memoria[i]&0x0FFFF));
+                  if ((memoria[i]>>22 & 0x03)==0){//Inmediato
+                    aux=(memoria[i])&0x0FFFF;
+                    aux<<=16;
+                    aux>>=16;
+                    printf("%3d",aux);
+                  }
                   else
                     if ((memoria[i]>>22 & 0x03)==2)//Directo
                       printf("[%2d]",(memoria[i] & 0x0FFFF));
@@ -552,8 +559,12 @@ int indiceM,indiceP,j,i=registro[IP];
         else{//2 OP
             indiceM+=(memoria[i]>>28)&0x0F;
             printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
-                  if ((memoria[i]>>26 & 0x03)==0)//Inmediato primer operando
-                    printf("%3d",((memoria[i]>>12)&0x0FFF));
+                  if ((memoria[i]>>26 & 0x03)==0){//Inmediato primer operando
+                    aux=(memoria[i]>>12)&0x0FFF;
+                    aux<<=20;
+                    aux>>=20;
+                    printf("%3d",aux);
+                  }   
                   else
                     if ((memoria[i]>>26 & 0x03)==2)//Directo
                       printf("[%2d]",(memoria[i]>>12) & 0x0FFF);//aca hay algo
@@ -570,9 +581,13 @@ int indiceM,indiceP,j,i=registro[IP];
                               printf("X");
                       printf(" ");
                     }
-                    printf(", ");
-                    if ((memoria[i]>>24 & 0x03)==0)//Inmediato segudo operando
-                      printf("%3d",((memoria[i])&0x0FFF));
+                    printf("%4c ",',');
+                    if ((memoria[i]>>24 & 0x03)==0){//Inmediato segudo operando
+                         aux=(memoria[i])&0x0FFF;
+                         aux<<=20;
+                         aux>>=20;
+                         printf("%3d",aux);
+                    }
                     else
                       if ((memoria[i]>>24 & 0x03)==2)//Directo
                         printf("[%2d]",(memoria[i] & 0x0FFF));
