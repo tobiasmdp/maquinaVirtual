@@ -92,7 +92,7 @@ int main(int argc, char const *argv[]){
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     instruccion |= tipoOperando1<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
-                    checkTruncado(operando1,12);
+                    checkTruncado(operando1,16);
                     if (tipoOperando1==0){
                         operando1<<=16;
                         operando1>>=16;
@@ -175,7 +175,7 @@ int checkCaracter(char* cadena){ //mira si el string es solo de caracteres alfab
 
 int checkInmediato(char* cadena){  
 
-    if (cadena[0] == '%' || cadena[0] == '#' || cadena[0] == '@' || cadena[0] == '$' || strncmp(cadena,"‘",3) == 0) //la comilla puede ser confundida
+    if (cadena[0] == '%' || cadena[0] == '#' || cadena[0] == '@' || cadena[0] == '$' || cadena[0] == 39 || strncmp(cadena,"‘",3) == 0) //la comilla puede ser confundida
         return 1;
     if (checkNumeric(cadena))
         return 1;
