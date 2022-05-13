@@ -38,6 +38,9 @@ void ADD(int *,int ,int *,int ,int ,int ,int [],int []);
 void SUB(int *,int ,int *,int ,int ,int ,int [],int []);
 void MUL(int *,int ,int *,int ,int ,int ,int [],int []);
 void DIV(int *,int ,int *,int ,int ,int ,int [],int []);
+void SLEN(int *,int ,int *,int ,int ,int ,int [],int []);
+void SMOV(int *,int ,int *,int ,int ,int ,int [],int []);
+void SCMP(int *,int ,int *,int ,int ,int ,int [],int []);
 void SWAP(int *,int ,int *,int ,int ,int ,int [],int []);
 void CMP(int *,int ,int *,int ,int ,int ,int [],int []);
 void SHL(int *,int ,int *,int ,int ,int ,int [],int []);
@@ -57,6 +60,10 @@ void LDL(int *,int ,int *,int ,int ,int ,int [],int []);
 void LDH(int *,int ,int *,int ,int ,int ,int [],int []);
 void RND(int *,int ,int *,int ,int ,int ,int [],int []);
 void NOT(int *,int ,int *,int ,int ,int ,int [],int []);
+void PUSH(int *,int ,int *,int ,int ,int ,int [],int []);
+void POP(int *,int ,int *,int ,int ,int ,int [],int []);
+void CALL(int *,int ,int *,int ,int ,int ,int [],int []);
+void RET(int *,int ,int *,int ,int ,int ,int [],int []);
 void STOP(int *,int ,int *,int ,int ,int ,int [],int []);
 
 int get_value(int *,int );
@@ -68,6 +75,7 @@ void dividenum(char [],int *, int *);
 void disassembler(int [],int []);
 int low(int);
 int high(int);
+int *dirmemoria(int , int [], int[]);
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
@@ -78,7 +86,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB;
     int memoria[TM],registro[TR];
-    T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,0,0,0,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,0,0,0,0,0,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
+    T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,SLEN,SMOV,SCMP,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,PUSH,POP,CALL,0,RET,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("cls");
@@ -86,9 +94,9 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
-    while (registro[IP]<=(registro[DS]>>16)){
+    while (low(registro[IP])<=(registro[DS]>>16)){
         indicef=0; 
-        inst=memoria[registro[IP]];
+        inst=memoria[low(registro[IP])];
         registro[IP]++;
         if ((inst&0xF0000000)==0xF0000000){
             indicef+=16;
@@ -323,6 +331,43 @@ void XOR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     set_value (A,auxA^auxB,mascaraA);
 }
 
+void SLEN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxB=get_value(B,mascaraB);
+    int i=0;
+    while (auxB!=0){
+        i++;
+        A++;
+        B++;
+        auxB=get_value(B,mascaraB);
+    }
+    set_value(A,i,mascaraA);
+}
+
+void SMOV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxB=get_value(B,mascaraB);
+    while (auxB!=0){
+        set_value(A,auxB,mascaraA);
+        A++;
+        B++;
+        auxB=get_value(B,mascaraB);
+    }
+    set_value(A,0,mascaraA);
+}
+
+
+void SCMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    int auxB=get_value(B,mascaraB);
+    registro[CC]=0;
+    while ((auxA!=0 || auxB!=0) && (registro[CC]&1)==1){
+        registroCC(auxA-auxB,registro);
+        A++;
+        B++;
+        auxB=get_value(B,mascaraB);
+        auxA=get_value(A,mascaraA);
+    }
+}
+
 void SHL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
@@ -344,7 +389,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     int indice,contc,cont=0,longitud;
     char caracter[]={};
     if ((*A & mascaraA) == 1){// lectura // revisar contadores
-        indice=registro[EDX];
+        indice=low(registro[EDX]);
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
@@ -371,7 +416,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     }
     else 
       if ((*A & mascaraA) == 2){ // escritura
-        indice=registro[EDX];
+        indice=low(registro[EDX]);
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
@@ -402,10 +447,29 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 breakpoint(registro,memoria);
             }
         }
+        else
+            if ((*A & mascaraA) == 3){ //String read
+                
+            }
+            else
+                if ((*A & mascaraA) == 4){ //String write
+                    if (checkFlag("-c"))
+                        system("cls");
+                    if (checkFlag("-d")){
+                        disassembler(registro,memoria);
+                    if (checkFlag("-b"))
+                        breakpoint(registro,memoria);
+                    }
+                }
+                else
+                    if ((*A & mascaraA) == 7) //String write 
+                        system("cls");    
+                
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=get_value(A,mascaraA); // mueve el ip al valor del operando
+    registro[IP] &= 0xFFFF0000;
+    registro[IP] &= low(get_value(A,mascaraA)); // mueve el ip al valor del operando
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -459,8 +523,28 @@ void NOT(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     registroCC(~auxA,registro);
     set_value (A,~auxA,mascaraA);
 }
+void PUSH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    registro[SP]--;
+    set_value (dirmemoria(registro[SP],registro,memoria),auxA,mascaraA);
+}
+void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK);
+    registro[SP]++;
+    set_value (A,auxA,mascaraA);
+}
+void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int auxA=get_value(A,mascaraA);
+    PUSH(dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);//Quiza sea mejor que dir memoria me devuelva un puntero? Curioso 
+    JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
+}
 
 /*Funciones de 0 operandos:*/
+void RET(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    int aux;
+    POP(&aux,mascaraA,B,C,D,mascaraB,memoria,registro);
+    JMP(&aux,EXTENDED_MASK,B,C,D,mascaraB,memoria,registro);
+}
 
 void STOP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     registro[IP]=(registro[DS]>>16);
@@ -500,6 +584,25 @@ int high(int a){
     return (a>>16) & REG_MASK;
 }
 
+int *dirmemoria(int inst, int registro[],int memoria[]){
+    int resultado,aux=inst;
+    aux>>=16;
+    aux&=0xFFFF;
+    if(aux==0){
+        resultado=low(inst)+ low(registro[DS]);
+    }
+    else if(aux==1){
+        resultado=low(inst)+low(registro[SS]);
+    }
+    else if (aux==2){
+        resultado=low(inst)+low(registro[ES]);
+    }
+    else if(aux==3){
+        resultado=low(inst)+low(registro[CS]);
+    }
+    return &memoria[resultado];
+}
+
 int checkFlag(char bandera []){ 
     int i=0;
     while (i<_argc && strcmp(_argv[i],bandera)!=0)
@@ -511,7 +614,7 @@ void breakpoint(int registro[], int memoria[]){
     char sig[10];
     int aux,aux1;
     
-    printf("[%04d] cmd: ",registro[IP]-1);
+    printf("[%04d] cmd: ",low(registro[IP])-1);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
         dividenum(sig,&aux,&aux1);
@@ -520,7 +623,7 @@ void breakpoint(int registro[], int memoria[]){
         else
           for (int i=aux;i<=aux1;i++)
             printf("[%04d] %08X %4d \n",i,memoria[i],memoria[i]);
-        printf("[%04d] cmd: ",registro[IP]-1);
+        printf("[%04d] cmd: ",low(registro[IP])-1);
         fgets(sig,10,stdin);
     }
     if (sig[0]=='p'){
@@ -555,14 +658,14 @@ void dividenum(char sig[],int *aux, int *aux1){
 void disassembler(int registro[],int memoria[]){ // ver impresion dessassembler
 char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","0","0","0","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","0","0","0","0","0","STOP"};
 char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
-int indiceM,indiceP,j,i=registro[IP],aux;
+int indiceM,indiceP,j,i=low(registro[IP]),aux;
     printf("Codigo: \n");
     if(i>5)
         i-=5;
     else
         i=0;
-    while (i<low(registro[DS]) && i<5+registro[IP]){
-        if (i==registro[IP])
+    while (i<low(registro[DS]) && i<5+low(registro[IP])){
+        if (i==low(registro[IP]))
             printf(">");
         else
             printf(" ");
@@ -661,4 +764,40 @@ int indiceM,indiceP,j,i=registro[IP],aux;
         printf(" | ");
         }
     printf("\n");
+
+
+}
+void CreaDisco()
+{   FILE* arch;
+    int aux;
+    arch=fopen("disco1.vdd","wb+");
+    aux=0x56444430;//tipo de archivo
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=1;//numero de version
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=rand();//identificador del disco
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=rand();
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=rand();
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=rand();
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=0x0131F56E;//fecha creacion
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=0x08050301;//hora creacion
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=10;//tipo
+    aux<<=8;
+    aux|=128;//cantidad de cilindros
+    aux<<=8;
+    aux|=128;//cantidad de cabezas
+    aux<<=8;
+    aux|=128;//cantidad de sectores
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=512;//tamaño de un sector
+    fwrite(&aux,sizeof(aux),1,arch);
+    aux=0;//relleno
+    fwrite(&aux,211,1,arch);
+    fclose(arch);
 }
