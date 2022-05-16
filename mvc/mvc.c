@@ -43,16 +43,19 @@ int main(int argc, char const *argv[]){
     int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0, cantCeldas;
     char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[5];
 
+    // se usa la lineaParseadaOriginal por el mnemonico, que se transforma en un int hacia la instruccion correspondiente, 
+    // pero luego al momento de mostrar por pantalla, se requiere el mnemonico original, no el numero de celda al cual va a saltar
+
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
 
-    getTablaRotulos(nombreArchT);
+    getTablaRotulos(nombreArchT); //genera tabla de rotulos paralela
 
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
 
-            lineaParseada = parseline(linea);
+            lineaParseada = parseline(linea); // parser catedra
             
             if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion
                 instruccion=0;
@@ -75,14 +78,6 @@ int main(int argc, char const *argv[]){
                     operando2 = getOperando(tipoOperando2, lineaParseada[3]);
                     checkTruncado(operando1,12);
                     checkTruncado(operando2,12);
-                    if (tipoOperando1==0){
-                        operando1<<=20;
-                        operando1>>=20;
-                    }
-                    if (tipoOperando2==0){
-                        operando2<<=20;
-                        operando2>>=20;
-                    }
                     instruccion |= (operando1<<12)&0x00FFF000;
                     instruccion |= (operando2)&0x00000FFF;
                 }
@@ -93,10 +88,6 @@ int main(int argc, char const *argv[]){
                     instruccion |= tipoOperando1<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
                     checkTruncado(operando1,16);
-                    if (tipoOperando1==0){
-                        operando1<<=16;
-                        operando1>>=16;
-                    }
                     instruccion |= (operando1)&0x0000FFFF;
                 }
                 else if(mnemonico >= 0xFF1 && mnemonico <= 0xFF1){ //0 OP
@@ -117,22 +108,21 @@ int main(int argc, char const *argv[]){
         }
         getHeader(dirMem); //dirMem+1 = cantCeldas  
         fclose(archT);
+
+        if(exito) //si algo sale mal, la var global exito se torna 0 (false)
+            if ((archB = fopen(nombreArchB, "wb")) != NULL){
+                fwrite(header, sizeof(int), 6, archB);
+                fwrite(tablaInstrucciones, sizeof(int), dirMem, archB);
+                fclose(archB); 
+            }
     }
     else
         printf("no se encontro el archivo");
-
-    if(exito)
-        if ((archB = fopen(nombreArchB, "wb")) != NULL){
-            fwrite(header, sizeof(int), 6, archB);
-            fwrite(tablaInstrucciones, sizeof(int), dirMem, archB);
-            fclose(archB); 
-        }
-
     return 0;
 }
 
 
-int getMnemonico(char* cadena){ //-1  no encontro el mnemonico
+int getMnemonico(char* cadena){ 
     for (int i=0; i<3; i++){
         for (int j=0; j<16; j++)
         if (stricmp(tablaMnemonicos[i][j], cadena) == 0){//i no importa mayusc
@@ -144,11 +134,11 @@ int getMnemonico(char* cadena){ //-1  no encontro el mnemonico
                 return j;
         } 
     }
-    return -1;
+    return -1; //-1  no encontro el mnemonico
 }
 
 
-int checkNumeric(char* cadena){ //se fija si es un numero valido || return 0 (false), return 1 (true) 
+int checkNumeric(char* cadena){ //se fija si es un numero valido
     int lenCadena = strlen(cadena), i=0;
     if (lenCadena == 0)
         return 0;
@@ -191,18 +181,16 @@ int checkDirecto(char* cadena){
 int checkRegistro(char* cadena){
     int largoCadena = strlen(cadena);
     char cadenaAux[10];
-    
     strcpy(cadenaAux, cadena);
-
-    for (int i=0; i < largoCadena; i++){
-        cadenaAux[i] = toupper(cadena[i]);
-    }
-        
+    if (stricmp(cadenaAux,"DS") == 0 || stricmp(cadenaAux,"IP") == 0 || stricmp(cadenaAux,"CC") == 0 || stricmp(cadenaAux,"AC") == 0)
+        return 1; // no es registro de proposito general
+    for (int i=0; i < largoCadena; i++) // mayusc copia de cadena
+        cadenaAux[i] = toupper(cadena[i]);   
     if (largoCadena == 2)
-        if (cadenaAux[0] >= 'A' && cadenaAux[0] <= 'F')
+        if (cadenaAux[0] >= 'A' && cadenaAux[0] <= 'F' && (cadenaAux[1] == 'X' || cadenaAux[1] == 'H' || cadenaAux[1] == 'L'))
             return 1;
     if (largoCadena == 3)
-        if (cadenaAux[0] >= 'E' && (cadenaAux[1] >= 'A' && cadenaAux[1] <= 'F') && (cadenaAux[2] == 'X' || cadenaAux[2] == 'H' || cadenaAux[2] == 'L'))
+        if (cadenaAux[0] == 'E' && (cadenaAux[1] >= 'A' && cadenaAux[1] <= 'F') && cadenaAux[2] == 'X')
             return 1;
     return 0;
 }
@@ -214,10 +202,10 @@ int getTipoOperando(char* cadena){
         return TORegistro;
     if (checkInmediato(cadena))
         return TOInmediato;
-    return -1;
+    return -1; //operando invalido
 }
 
-void removeCorchetes(char* cadena, char* out){ //en realidad se remueve el primer y ultimo char de la cadena
+void removeCorchetes(char* cadena, char* out){ //remueve el primer y ultimo char de la cadena
     int largoCadena = strlen(cadena);
     memcpy(out,cadena+1, largoCadena-2); //preferible copiar la data a corromper cadena
     out [largoCadena-2] = 0; //marco el fin de la cadena
@@ -236,6 +224,16 @@ int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
 
 int operandoRegistro(char *operandoEnString){
     int largoCadena = strlen(operandoEnString);
+    // Registros especificos
+    if (stricmp(operandoEnString, "DS") == 0)
+        return (0);
+    if (stricmp(operandoEnString, "IP") == 0)
+        return (5);
+    if (stricmp(operandoEnString, "CC") == 0)
+        return (8);
+    if (stricmp(operandoEnString, "AC") == 0)
+        return (9);
+    // Registros de proposito general
     if (largoCadena == 2){ 
         if (toupper(operandoEnString[1]) == 'L') //toupper hace un return, no edita, hace uppercase
             return (1<<4 | toupper(operandoEnString[0])-55); //siempre la letra mayusc asi en el ascci siempre resto 55
@@ -243,8 +241,6 @@ int operandoRegistro(char *operandoEnString){
             return (2<<4 | toupper(operandoEnString[0])-55);
         if (toupper(operandoEnString[1]) == 'X')
             return (3<<4 | toupper(operandoEnString[0])-55);
-        if (toupper(operandoEnString[1]) == 'C')
-            return (9);
     }
     if (largoCadena == 3){
         return (0 | toupper(operandoEnString[1])-55);
@@ -252,10 +248,6 @@ int operandoRegistro(char *operandoEnString){
 }
 
 
-/* 
-https://stackoverflow.com/questions/59838304/how-can-i-change-an-apostrophe-into-a-single-unit-instead-of-3-bytes-342-200
-el apostrofe ocupa 3 bytes
-*/
 int getOperando(int tipoOperando, char operandoEnString[]){
     char operandoAux[64];
     char* cono; 
@@ -273,6 +265,7 @@ int getOperando(int tipoOperando, char operandoEnString[]){
             return (int)operandoEnString[1];
         return anyToInt(operandoEnString, &cono); 
     }
+    return -1; // operando invalido
 }
 
 void getTablaRotulos(char* nombreArchT){
@@ -292,10 +285,10 @@ void getTablaRotulos(char* nombreArchT){
 }
 
 int getRotulo(char* operandoEnString){
-     for( int i=0; i<largoLinea; i++)
+     for( int i=0; i<largoMemoria; i++)
         if(stricmp(operandoEnString, tablaRotulos[i]) == 0)
-            return i; //i es la pos de memoria corresp a ese Rotulo
-    return -1;
+            return i; //i es la pos de memoria correspondiente a ese Rotulo
+    return -1; // no se encontro el rotulo
 }
 
 int checkSalto(int mnemonico){
@@ -313,23 +306,23 @@ int checkRotulo(char* operandoEnString, int mnemonico){
 }
 
 void transformRotulo(char* operandoEnString, int mnemonico){
-    int rotuloInt = getRotulo(operandoEnString);
+    int rotuloInt = getRotulo(operandoEnString); //nro de instruccion a la cual debe saltar
     char aux[largoString];
-    if (checkRotulo(operandoEnString, mnemonico)){
+    if (checkRotulo(operandoEnString, mnemonico)){ // check de si va a saltar a un rotulo valido
         if (rotuloInt != -1)
-            sprintf(aux, "%d", rotuloInt);
+            sprintf(aux, "%d", rotuloInt); 
         else{
             sprintf(aux, "%X", 0xFFF);
             printf("Error, No se encuentra el rótulo");
             exito=0;
         }
-        strcpy(operandoEnString, aux);
+        strcpy(operandoEnString, aux); // reemplaza rotulo de instruccion con nro de celda a saltar
     }
 }
 
 void checkTruncado(int operando, int bits){
     if (bits == 16)
-        if ((operando & 0xFFFF0000) != 0 && (operando & 0xFFFF0000)!=0XFFFF0000){
+        if ((operando & 0xFFFF0000) != 0 && (operando & 0xFFFF0000)!=0XFFFF0000){ //considera el corriemiento para numeros negativos
             printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
         }
     if (bits == 12)
