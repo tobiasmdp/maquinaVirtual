@@ -82,7 +82,7 @@ int main(int argc, char const *argv[]){
                     instruccion |= (operando2)&0x00000FFF;
                 }
                 else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
-                    transformRotulo(lineaParseada[2], mnemonico);
+                    transformRotulo(lineaParseada[2], mnemonico);  //se cambia
                     instruccion = mnemonico<<24;
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     instruccion |= tipoOperando1<<22;
@@ -268,7 +268,7 @@ int getOperando(int tipoOperando, char operandoEnString[]){
     return -1; // operando invalido
 }
 
-void getTablaRotulos(char* nombreArchT){
+void    getTablaRotulos(char* nombreArchT){
     int i=0;
     FILE *archT;
     char linea[largoLinea], **lineaParseada;
