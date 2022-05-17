@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "parser.c"
 
+#define largoParser 8
 #define largoLinea 256
 #define largoString 100
 #define largoMemoria 4096
@@ -31,17 +32,26 @@ void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* lineaParseada[]);
 void getHeader(int cantCeldas);
 
-int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1; //exito significa 0 errores
+int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, dirMem=0, DS=1024, SS=1024, ES=1024; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
 char* tablaRotulos[largoMemoria];
 
+    // "      LABEL: %s\n", parsed[0] 
+    // "   MNEMONIC: %s\n", parsed[1] 
+    // "  OPERAND 1: %s\n", parsed[2] 
+    // "  OPERAND 2: %s\n", parsed[3] 
+    // "    COMMENT: %s\n", parsed[4] 
+    // "    SEGMENT: %s\n", parsed[5] 
+    // "  SEG. SIZE: %s\n", parsed[6] 
+    // " CONST NAME: %s\n", parsed[7] 
+    // "CONST VALUE: %s\n", parsed[8] 
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
-    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0, cantCeldas;
-    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[5];
+    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2;
+    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[largoParser];
 
     // se usa la lineaParseadaOriginal por el mnemonico, que se transforma en un int hacia la instruccion correspondiente, 
     // pero luego al momento de mostrar por pantalla, se requiere el mnemonico original, no el numero de celda al cual va a saltar
@@ -57,10 +67,10 @@ int main(int argc, char const *argv[]){
 
             lineaParseada = parseline(linea); // parser catedra
             
-            if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion
+            if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion con mnemmonicco
                 instruccion=0;
 
-                for( int j = 0; j < 5; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
+                for( int j = 0; j < largoParser; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
         
                 mnemonico = getMnemonico(lineaParseada[1]);
                 if (mnemonico < 0){
@@ -100,6 +110,11 @@ int main(int argc, char const *argv[]){
                 
                 dirMem++;
             }
+            else if (lineaParseada[5] != 0) //asignacion de segmento de memoria
+            {
+                /* code */
+            }
+            
             else //se considera una linea q vacia o de comentario
                 if(lineaParseada[4] != 0)
                     printf("\n%s\n",lineaParseada[4]);
@@ -350,9 +365,9 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
 
 void getHeader(int cantCeldas){
     header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'1');
-    header[1]=cantCeldas;
-    header[2]=0;
-    header[3]=0;
-    header[4]=0;
+    header[1]=DS;
+    header[2]=SS;
+    header[3]=ES;
+    header[4]=cantCeldas;
     header[5]=((int)'V'<<24 | (int)'.'<<16 | (int)'2'<<8 | (int)'2');
 }
