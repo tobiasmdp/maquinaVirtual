@@ -5,13 +5,16 @@
 #include "parser.h"
 #include "parser.c"
 
-#define largoParser 8
 #define largoLinea 256
 #define largoString 100
 #define largoMemoria 4096
-#define TOInmediato (0)
-#define TORegistro (1)
-#define TODirecto (2)
+#define largoParser 8
+#define largoSimbolo 10
+#define TOInmediato 0
+#define TORegistro 1
+#define TODirecto 2
+#define TOIndirecto 3
+
 
 int getMnemonico(char* cadena);
 int checkNumeric(char* cadena);
@@ -31,11 +34,12 @@ void transformRotulo(char* operandoEnString, int mnemonico);
 void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* lineaParseada[]);
 void getHeader(int cantCeldas);
+int updateSegmento(char* segmento, char* tamanio);
 
-int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, dirMem=0, DS=1024, SS=1024, ES=1024; //exito significa 0 errores
-const char* tablaMnemonicos[3][16] = {{"","STOP","","","","","","","","","","","","","",""}, 
-                            {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","","","",""},
-                            {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","","","",""}};
+int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024; //exito significa 0 errores
+const char* tablaMnemonicos[3][16] = {{"RET","STOP","","","","","","","","","","","","","",""}, 
+                            {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","PUSH","POP","CALL",""},
+                            {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","SLEN","SMOV","SCMP",""}};
 char* tablaRotulos[largoMemoria];
 
     // "      LABEL: %s\n", parsed[0] 
@@ -50,7 +54,7 @@ char* tablaRotulos[largoMemoria];
 
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
-    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2;
+    int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0;
     char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[largoParser];
 
     // se usa la lineaParseadaOriginal por el mnemonico, que se transforma en un int hacia la instruccion correspondiente, 
@@ -73,7 +77,7 @@ int main(int argc, char const *argv[]){
                 for( int j = 0; j < largoParser; j++ ) lineaParseadaOriginal[j] = strdup(lineaParseada[j]); //copia el array de strings
         
                 mnemonico = getMnemonico(lineaParseada[1]);
-                if (mnemonico < 0){
+                if (mnemonico < 0){ //validacion error mnemonico
                     instruccion = 0xFFFFFFFF;
                     printf("Error de Sintaxis");
                     exito=0;
@@ -112,7 +116,10 @@ int main(int argc, char const *argv[]){
             }
             else if (lineaParseada[5] != 0) //asignacion de segmento de memoria
             {
-                /* code */
+                updateSegmento(lineaParseada[5], lineaParseada[6]);
+                if (DS + ES + SS + CS > largoMemoria)
+                    instruccion = 0xFFFFFFFF;
+                    exito = 0;
             }
             
             else //se considera una linea q vacia o de comentario
@@ -168,7 +175,7 @@ int checkNumeric(char* cadena){ //se fija si es un numero valido
     return 1; 
 } 
 
-int checkCaracter(char* cadena){ //mira si el string es solo de caracteres alfabeticos
+int checkStringAlfa(char* cadena){ //mira si el string es solo de caracteres alfabeticos
     int i=0;
     while (cadena[i]){
         if (!isalpha(cadena[i]))
@@ -187,9 +194,12 @@ int checkInmediato(char* cadena){
     return 0;
 }
 
-int checkDirecto(char* cadena){
-    if (cadena[0] == '[')
-        return 1;
+int checkDirecto(char* cadena){ //tienen corchetes y contienen un inmediato
+    char* cadenaAux;
+    if (cadena[0] == '[') //miro el corchete
+        removeCorchetes(cadena, cadenaAux);
+        if (checkInmediato(cadenaAux)) //miro si es inmediato
+            return 1;
     return 0;
 }
 
@@ -210,6 +220,35 @@ int checkRegistro(char* cadena){
     return 0;
 }
 
+int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un offset
+    int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
+    char* cadenaAux, registroAux[4], offsetAux[largoSimbolo]; 
+    registroAux[0] = '0'; 
+    if (cadena[0] == '[') //miro el corchete
+        removeCorchetes(cadena, cadenaAux);
+        largoCadenaAux = strlen(cadenaAux);
+        if (largoCadenaAux == 2)
+            if (checkRegistro(cadenaAux))
+                resultado = 1; //registro largo 2
+        else if (largoCadenaAux == 3)
+            if (checkRegistro(cadenaAux))
+                resultado = 1; //registro largo 3
+        else if (largoCadenaAux >= 3){
+            if (cadenaAux[2] == '+')
+                largoRegistroAux = 2;
+            else if (cadenaAux[3] == '+')
+                largoRegistroAux = 3;
+            if (cadenaAux[largoRegistroAux] == '+'){
+                memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
+                if (checkStringAlfa(offsetAux))
+                    resultado = 1; //registro con offset de simbolo
+                else if (offsetAux[0] != '-' && checkNumeric(offsetAux))
+                    resultado = 1; //registro con offset de numero
+            }
+        }
+    return resultado;
+}
+
 int getTipoOperando(char* cadena){
     if (checkDirecto(cadena))
         return TODirecto;
@@ -217,6 +256,8 @@ int getTipoOperando(char* cadena){
         return TORegistro;
     if (checkInmediato(cadena))
         return TOInmediato;
+    if (checkIndirecto(cadena))
+        return TOIndirecto;
     return -1; //operando invalido
 }
 
@@ -266,21 +307,31 @@ int operandoRegistro(char *operandoEnString){
 int getOperando(int tipoOperando, char operandoEnString[]){
     char operandoAux[64];
     char* cono; 
+    int resultado = -1;
     if (tipoOperando == TORegistro){
-        return operandoRegistro(operandoEnString);
+        resultado = operandoRegistro(operandoEnString);
     }
-    if (tipoOperando == TODirecto){
+    else if (tipoOperando == TODirecto){
+        removeCorchetes(operandoEnString, operandoAux);
+        if (operandoEnString[0] == '\'') //los que llevan comillas se asumen q son de 1 solo caracter
+            resultado = (int)operandoEnString[1];
+        else
+            resultado = anyToInt(operandoAux, &cono);
+    }
+    else if (tipoOperando == TOInmediato){
+        if (operandoEnString[0] == '\'')
+            resultado = (int)operandoEnString[1];
+        else
+            resultado = anyToInt(operandoEnString, &cono); 
+    }
+    else if (tipoOperando == TOIndirecto){
         removeCorchetes(operandoEnString, operandoAux);
         if (operandoEnString[0] == '\'')
-            return (int)operandoEnString[1];
-        return anyToInt(operandoAux, &cono);
+            resultado = (int)operandoEnString[1];
+        else
+            resultado = anyToInt(operandoAux, &cono);
     }
-    if (tipoOperando == TOInmediato){
-        if (operandoEnString[0] == '\'')
-            return (int)operandoEnString[1];
-        return anyToInt(operandoEnString, &cono); 
-    }
-    return -1; // operando invalido
+    return resultado; // -1 = tipoOperando invalido
 }
 
 void getTablaRotulos(char* nombreArchT){
@@ -370,4 +421,19 @@ void getHeader(int cantCeldas){
     header[3]=ES;
     header[4]=cantCeldas;
     header[5]=((int)'V'<<24 | (int)'.'<<16 | (int)'2'<<8 | (int)'2');
+}
+
+int updateSegmento(char* segmento, char* tamanio){
+    int resultado = 1;
+    char* cono;
+    int valor = anyToInt(tamanio, &cono);
+    if (stricmp(segmento, "DATA") == 0)
+        DS = valor;
+    else if (stricmp(segmento, "EXTRA") == 0)
+        ES= valor;
+    else if (stricmp(segmento, "STACK") == 0)
+        SS = valor;
+    else
+        resultado = -1;
+    return resultado;
 }

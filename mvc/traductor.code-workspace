@@ -6,7 +6,8 @@
     ],
     "settings": {
         "files.associations": {
-            "string.h": "c"
+            "string.h": "c",
+            "cctype": "c"
         }
     }
 }
