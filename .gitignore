@@ -1,4 +1,2 @@
 *.temp
 *.tmp
-mvc/asm #repo de testeaos de asm
-*.asm

@@ -116,15 +116,18 @@ int main(int argc, char const *argv[]){
             }
             else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
                 updateSegmento(lineaParseada[5], lineaParseada[6]);
-                if (DS + ES + SS + CS > largoMemoria)
+                if (DS + ES + SS + CS > largoMemoria){
                     printf("Valores inapropiado en directiva");
+                    printf("\n\n");
                     instruccion = 0xFFFFFFFF;
                     exito = 0;
+                }
             }  
-            else //se considera una linea q vacia o de comentario
-                if(lineaParseada[4] != 0)
-                    printf("\n%s\n",lineaParseada[4]);
-
+            else if(lineaParseada[4] != 0){ //linea comentario
+                printf("%s",lineaParseada[4]);
+                printf("\n\n");
+            }
+                
             freeline(lineaParseada);
         }
         getHeader(dirMem); //dirMem+1 = cantCeldas  
@@ -414,11 +417,13 @@ void transformRotulo(char* operandoEnString, int mnemonico){
 void checkTruncado(int operando, int bits){
     if (bits == 16)
         if ((operando & 0xFFFF0000) != 0 && (operando & 0xFFFF0000)!=0XFFFF0000){ //considera el corriemiento para numeros negativos
-            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n\n", operando, bits);
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.", operando, bits);
+            printf("\n\n");
         }
     if (bits == 12)
                 if ((operando & 0xFFFFF000) != 0  && (operando & 0xFFFFF000)!=0XFFFFF000){
-            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n\n", operando, bits);
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.", operando, bits);
+            printf("\n\n");
         }
 }
 
@@ -426,22 +431,21 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
     char coma[largoLinea]=";";
     if(lineaParseada[1]){ //tiene mnemonico --> linea comun
         if (lineaParseada[0] != 0) //si tiene rotulo
-            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %11s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %11s %-11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             lineaParseada[0], lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
         else
-            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %11s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %11s %-11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             dirMem+1, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2], 
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
     }
     else if (lineaParseada[5]) //tiene segmento
-        printf("\\%s %s\n\n", lineaParseada[5], lineaParseada[6]);
-    else if (lineaParseada[7]){ //constante implicita
+        printf("\\%s %s", lineaParseada[5], lineaParseada[6]);
+    else if (lineaParseada[7]) //constante implicita
         printf("%s EQU %s", lineaParseada[7], lineaParseada[8]);
-    }
-    else if (lineaParseada[4]){ //comentario
+    else if (lineaParseada[4]) //comentario
         printf(lineaParseada[4]);
-    }
+    printf("\n\n");
 }
 
 void getHeader(int cantCeldas){
