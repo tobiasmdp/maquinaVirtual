@@ -7,7 +7,7 @@
 
 #define largoLinea 256
 #define largoString 100
-#define largoMemoria 4096
+#define largoMemoria 8192
 #define largoParser 8
 #define largoSimbolo 10
 #define TOInmediato 0
@@ -114,14 +114,13 @@ int main(int argc, char const *argv[]){
                 
                 dirMem++;
             }
-            else if (lineaParseada[5] != 0) //asignacion de segmento de memoria
-            {
+            else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
                 updateSegmento(lineaParseada[5], lineaParseada[6]);
                 if (DS + ES + SS + CS > largoMemoria)
+                    printf("Valores inapropiado en directiva");
                     instruccion = 0xFFFFFFFF;
                     exito = 0;
-            }
-            
+            }  
             else //se considera una linea q vacia o de comentario
                 if(lineaParseada[4] != 0)
                     printf("\n%s\n",lineaParseada[4]);
@@ -195,11 +194,12 @@ int checkInmediato(char* cadena){
 }
 
 int checkDirecto(char* cadena){ //tienen corchetes y contienen un inmediato
-    char* cadenaAux;
-    if (cadena[0] == '[') //miro el corchete
+    char cadenaAux[10];
+    if (cadena[0] == '['){ //miro el corchete
         removeCorchetes(cadena, cadenaAux);
         if (checkInmediato(cadenaAux)) //miro si es inmediato
             return 1;
+    }
     return 0;
 }
 
@@ -222,9 +222,9 @@ int checkRegistro(char* cadena){
 
 int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un offset
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
-    char* cadenaAux, registroAux[4], offsetAux[largoSimbolo]; 
+    char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo]; 
     registroAux[0] = '0'; 
-    if (cadena[0] == '[') //miro el corchete
+    if (cadena[0] == '[') {//miro el corchete
         removeCorchetes(cadena, cadenaAux);
         largoCadenaAux = strlen(cadenaAux);
         if (largoCadenaAux == 2)
@@ -246,6 +246,7 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
                     resultado = 1; //registro con offset de numero
             }
         }
+    }
     return resultado;
 }
 
@@ -303,6 +304,33 @@ int operandoRegistro(char *operandoEnString){
     }
 }
 
+int operandoIndirecto(char* operandoEnString){
+    int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
+    char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
+    registroAux[0] = '0'; 
+    removeCorchetes(operandoEnString, cadenaAux);
+    largoCadenaAux = strlen(cadenaAux);
+    if (largoCadenaAux == 2)
+        resultado = toupper(cadenaAux[0])-55; //registro largo 2
+    else if (largoCadenaAux == 3)
+        resultado = toupper(cadenaAux[1])-55; //registro largo 3
+    else{
+        if (cadenaAux[2] == '+'){
+            resultado = toupper(cadenaAux[0])-55; 
+            largoRegistroAux = 2;
+        }
+        else{
+            resultado = toupper(cadenaAux[1])-55;
+            largoRegistroAux = 3;
+        }
+        memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
+        if (checkStringAlfa(offsetAux))
+            resultado = 1; //registro con offset de simbolo 
+        else
+            resultado = resultado & anyToInt(offsetAux, &cono)<<4; //registro con offset de numero
+    }
+    return resultado;
+}
 
 int getOperando(int tipoOperando, char operandoEnString[]){
     char operandoAux[64];
@@ -326,10 +354,7 @@ int getOperando(int tipoOperando, char operandoEnString[]){
     }
     else if (tipoOperando == TOIndirecto){
         removeCorchetes(operandoEnString, operandoAux);
-        if (operandoEnString[0] == '\'')
-            resultado = (int)operandoEnString[1];
-        else
-            resultado = anyToInt(operandoAux, &cono);
+        resultado = operandoIndirecto(operandoEnString); // definir esta funcion
     }
     return resultado; // -1 = tipoOperando invalido
 }
@@ -389,27 +414,32 @@ void transformRotulo(char* operandoEnString, int mnemonico){
 void checkTruncado(int operando, int bits){
     if (bits == 16)
         if ((operando & 0xFFFF0000) != 0 && (operando & 0xFFFF0000)!=0XFFFF0000){ //considera el corriemiento para numeros negativos
-            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n\n", operando, bits);
         }
     if (bits == 12)
                 if ((operando & 0xFFFFF000) != 0  && (operando & 0xFFFFF000)!=0XFFFFF000){
-            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n", operando, bits);
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.\n\n", operando, bits);
         }
 }
 
 void printeo(int dirMem, int instruccion, char* lineaParseada[]){
     char coma[largoLinea]=";";
-    if(lineaParseada[1]){ //tiene mnemonico --> no es comentario
+    if(lineaParseada[1]){ //tiene mnemonico --> linea comun
         if (lineaParseada[0] != 0) //si tiene rotulo
-            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %11s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             lineaParseada[0], lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
         else
-            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %7s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %11s %-11s %s\n\n", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             dirMem+1, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2], 
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
     }
-    else{
+    else if (lineaParseada[5]) //tiene segmento
+        printf("\\%s %s\n\n", lineaParseada[5], lineaParseada[6]);
+    else if (lineaParseada[7]){ //constante implicita
+        printf("%s EQU %s", lineaParseada[7], lineaParseada[8]);
+    }
+    else if (lineaParseada[4]){ //comentario
         printf(lineaParseada[4]);
     }
 }
