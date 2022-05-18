@@ -2,3 +2,5 @@
 *.tmp
 mvc/asm #repo de testeaos de asm
 *.asm
+#ingnora los .vscode
+.vscode
