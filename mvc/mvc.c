@@ -311,7 +311,7 @@ int operandoIndirecto(char* operandoEnString){
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
     registroAux[0] = '0'; 
-    rotulo rotuloAux;
+    // rotulo rotuloAux;
     removeCorchetes(operandoEnString, cadenaAux);
     largoCadenaAux = strlen(cadenaAux);
     if (largoCadenaAux == 2)
