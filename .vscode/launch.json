@@ -11,7 +11,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-            "args": ["jump.mv1","-b", "-c"],
+            "args": ["jump.mv1","-b", "-c", "-d"],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
             "environment": [],

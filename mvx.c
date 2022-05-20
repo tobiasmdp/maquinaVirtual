@@ -73,6 +73,7 @@ int checkFlag(char []);
 void breakpoint(int [], int []);
 void dividenum(char [],int *, int *);
 void disassembler(int [],int []);
+void imprimeOperando(int , int);
 int low(int);
 int high(int);
 int *dirmemoria(int , int [], int[]);
@@ -85,7 +86,7 @@ int pri=0;
 int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB;
-    int memoria[TM],registro[TR];
+    int memoria[TM],registro[TR]={0};
     T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,SLEN,SMOV,SCMP,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,PUSH,POP,CALL,0,RET,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
     
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
@@ -94,7 +95,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
-    while (low(registro[IP])<=(registro[DS]>>16)){
+    while (low(registro[IP])<=(registro[CS]>>16 + registro[CS])){
         indicef=0; 
         inst=memoria[low(registro[IP])];
         registro[IP]++;
@@ -152,38 +153,45 @@ void LeeArch(int memoria[],int registro[]){
         exit(EXIT_FAILURE);
     }
     */
+
+   //* PRUEBA TEMPORAL HASTA QUE CONSIGA UN ARCHIVO PARA TESTEAR//*
+   header[1]=10;
+   header[2]=20;
+   header[3]=40;
+   header[4]=50;
+    //* PRUEBA TEMPORAL HASTA QUE CONSIGA UN ARCHIVO PARA TESTEAR//*
     i=0;
     registro[CS]=header[4];
     registro[CS]<<=16;
-    registro[CS]|(REG_MASK & i);
+    registro[CS]|=(REG_MASK & i);
     i+=header[4];
 
     registro[DS]=header[1];
     registro[DS]<<=16;
-    registro[DS]|(REG_MASK & i);
+    registro[DS]|=(REG_MASK & i);
     i+=header[1];
 
     registro[ES]=header[3];
     registro[ES]<<=16;
-    registro[ES]|(REG_MASK & i);
+    registro[ES]|=(REG_MASK & i);
     i+=header[3];
 
     registro[SS]=header[2];
     registro[SS]<<=16;
-    registro[SS]|(REG_MASK & i);
+    registro[SS]|=(REG_MASK & i);
 
     registro[HP]=2;
     registro[HP]<<=16;
-    registro[HP]|(REG_MASK & 0);
+    registro[HP]|=(REG_MASK & 0);
 
     registro[IP]=3;
     registro[IP]<<=16;
-    registro[IP]|(REG_MASK & 0);
+    registro[IP]|=(REG_MASK & 0);
 
     aux=registro[SS]>>16;
     registro[SP]=1;
     registro[SP]<<=16;
-    registro[SP]|(REG_MASK & aux);
+    registro[SP]|=(REG_MASK & aux);
 
     registro[BP]=1;
     registro[BP]<<=16;
@@ -248,8 +256,8 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                     offset=(operando>>4) & 0x0FF;
                     offset<<=24;
                     offset>>=24;
-                    inicioReg=low(registro[high(registro[numreg])]);
-                    finReg=inicioReg+high(registro[high(registro[numreg])]);
+                    inicioReg=low(registro[high(registro[numreg])]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
+                    finReg=inicioReg+high(registro[high(registro[numreg])]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
                     direccion=inicioReg+low(registro[numreg])+offset;
                     if(direccion>inicioReg && direccion<finReg)
                         *A=&memoria[direccion];
@@ -336,7 +344,6 @@ void SLEN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int 
     int i=0;
     while (auxB!=0){
         i++;
-        A++;
         B++;
         auxB=get_value(B,mascaraB);
     }
@@ -388,18 +395,19 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud;
     char caracter[]={};
+    indice=(int) (dirmemoria(registro[EDX],registro,memoria) - memoria);  //Aritmetica de punteros en todo su esplendor, la pregunta es le sumo 1? Probarlo
+
     if ((*A & mascaraA) == 1){// lectura // revisar contadores
-        indice=low(registro[EDX]);
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
             if ((registro[EAX]&0x0100)>>8==0){
                 if ((registro[EAX]&0x001)==1)
-                    scanf("%d",memoria+(low(registro[DS])+indice+cont));
+                    scanf("%d",memoria+(indice+cont));
                 if ((registro[EAX]&0x004)==1)
-                    scanf("%o",memoria+(low(registro[DS])+indice+cont));
+                    scanf("%o",memoria+(indice+cont));
                 if ((registro[EAX]&0x008)==1)
-                    scanf("%X",memoria+(low(registro[DS])+indice+cont));
+                    scanf("%X",memoria+(indice+cont));
                 cont++;
             }
             else {
@@ -407,7 +415,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 longitud=strlen(caracter);
                 contc=0;
                 while (contc<longitud && cont<(registro[ECX]&REG_MASK)){
-                    memoria[low(registro[DS])+indice+cont]=caracter[contc];
+                    memoria[indice+cont]=caracter[contc];
                     contc++;
                     cont++;
                 }
@@ -416,22 +424,21 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     }
     else 
       if ((*A & mascaraA) == 2){ // escritura
-        indice=low(registro[EDX]);
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
             if ((registro[EAX]&0x001)==1)
-                printf("%4d ",memoria[low(registro[DS])+indice+cont]);
+                printf("%4d ",memoria[indice+cont]);
             if ((registro[EAX]&0x004)==1)
-                printf("%4o ",memoria[low(registro[DS])+indice+cont]);
+                printf("%4o ",memoria[indice+cont]);
             if ((registro[EAX]&0x008)==1)
-                printf("%08X ",memoria[low(registro[DS])+indice+cont]);
+                printf("%08X ",memoria[indice+cont]);
             if ((registro[EAX]&0x010)>>4==1)
-                if ((memoria[low(registro[DS])+indice+cont]&0x0FF<=31) || (memoria[low(registro[DS])+indice+cont]&0x0FF==127))
+                if ((memoria[indice+cont]&0x0FF<=31) || (memoria[indice+cont]&0x0FF==127))
                     printf(".");
                 else
-                    printf("%c ",(memoria[low(registro[DS])+indice+cont]&0x0FF));
+                    printf("%c ",(memoria[indice+cont]&0x0FF));
             if ((registro[EAX]&0x0100)>>8==0)
                 printf("\n");
             cont++;
@@ -449,27 +456,29 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
         else
             if ((*A & mascaraA) == 3){ //String read
-                
-            }
-            else
-                if ((*A & mascaraA) == 4){ //String write
-                    if (checkFlag("-c"))
-                        system("cls");
-                    if (checkFlag("-d")){
-                        disassembler(registro,memoria);
-                    if (checkFlag("-b"))
-                        breakpoint(registro,memoria);
-                    }
+                if ((registro[EAX]&0x0800)>>11==0)
+                    printf("[%04d]: ",(indice+cont));
+                scanf("%s",caracter);
+                for (int i = 0; i < registro[ECX]&REG_MASK; i++){
+                    memoria[indice+i]=caracter[i];
                 }
+            }
+            else if ((*A & mascaraA) == 4){ //String write
+                if ((registro[EAX]&0x0800)>>11==0)
+                    printf("[%04d]: ",(indice+cont));
+                for (int i = 0; i < registro[ECX]&REG_MASK; i++){
+                    printf("%c ",(memoria[indice+cont]&0x0FF));
+                }
+                if ((registro[EAX]&0x0100)>>8==0)
+                    printf("\n");
+            }
                 else
-                    if ((*A & mascaraA) == 7) //String write 
+                    if ((*A & mascaraA) == 7) //clear screen
                         system("cls");    
-                
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP] &= 0xFFFF0000;
-    registro[IP] &= low(get_value(A,mascaraA)); // mueve el ip al valor del operando
+    registro[IP]=low(get_value(A,mascaraA)) ; // curiosa aplicacion, que hacer? 
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -477,7 +486,7 @@ void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int re
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
-void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //ver bien estas condiciones
+void JP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ 
     if ((registro[CC]&0x80000000)==0 && (registro[CC]&0x01)==0)
         JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
@@ -547,7 +556,7 @@ void RET(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void STOP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=(registro[DS]>>16);
+    registro[IP]=(registro[DS]>>16 + low(registro[DS]));
 }
 
 /*Otras funciones utiles*/
@@ -577,7 +586,7 @@ void set_value (int *a,int value, int mask){
     *a = *a | (value & mask);
 }
 
-int low(int a){//acceso rapido a la parte baja de un registro para no perder legibilidad, solo debe utilizarse exclusivamente para DS,ES,SS,CS 
+int low(int a){//accesos rapidos a la parte baja de un registro para no perder legibilidad, solo debe utilizarse exclusivamente para registros de procesador
     return a & REG_MASK;
 }
 int high(int a){
@@ -585,9 +594,7 @@ int high(int a){
 }
 
 int *dirmemoria(int inst, int registro[],int memoria[]){
-    int resultado,aux=inst;
-    aux>>=16;
-    aux&=0xFFFF;
+    int resultado,aux=high(inst);
     if(aux==0){
         resultado=low(inst)+ low(registro[DS]);
     }
@@ -656,9 +663,9 @@ void dividenum(char sig[],int *aux, int *aux1){
 }
 
 void disassembler(int registro[],int memoria[]){ // ver impresion dessassembler
-char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","0","0","0","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","0","0","0","0","0","STOP"};
-char* Procesador[16]={"DS"," "," "," "," ","IP"," "," ","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
-int indiceM,indiceP,j,i=low(registro[IP]),aux;
+char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","SLEN","SMOV","SCMP","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","PUSH","POP","CALL","0","RET","STOP"};
+char* Procesador[16]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
+int indiceM,indiceP,j,i=low(registro[IP]),tipoOp;
     printf("Codigo: \n");
     if(i>5)
         i-=5;
@@ -672,85 +679,23 @@ int indiceM,indiceP,j,i=low(registro[IP]),aux;
         indiceM=0;
         if ((memoria[i]&0xF0000000)==0xF0000000){
             indiceM+=16;
-            if((memoria[i]&0x0F000000)==0x0F000000){//0 OP 
+            if((memoria[i]&0x0F000000)==0x0F000000){                    //0 OP 
                 indiceM+=16;
                 indiceM+=(memoria[i]>>20)&0x0F;
                 printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
             }
-            else{//1 OP
+            else{                                                       //1 OP
                 indiceM+=(memoria[i]>>24)&0x00F;
                 printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
-                  if ((memoria[i]>>22 & 0x03)==0){//Inmediato
-                    aux=(memoria[i])&0x0FFFF;
-                    aux<<=16;
-                    aux>>=16;
-                    printf("%3d",aux);
-                  }
-                  else
-                    if ((memoria[i]>>22 & 0x03)==2)//Directo
-                      printf("[%2d]",(memoria[i] & 0x0FFFF));
-                    else{//Registro
-                      if ((memoria[i]>>4 & 0x03)==0)
-                        printf("E");
-                      printf ("%X",(memoria[i] & 0x0F));   
-                        if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
-                          printf("L");
-                        else
-                          if ((memoria[i]>>4 & 0x03)==2) // registro del 3 byte
-                            printf("H");
-                          else //registro de 2 bytes
-                            printf("X");
-                    }
+                imprimeOperando(memoria[i]>>22 & 0x03,memoria[i]&0xFFFF);
             }
         }
         else{//2 OP
             indiceM+=(memoria[i]>>28)&0x0F;
             printf(" [%04d] %08X %3d %4s ",i,memoria[i],i+1,Mnemonicos[indiceM]);
-                  if ((memoria[i]>>26 & 0x03)==0){//Inmediato primer operando
-                    aux=(memoria[i]>>12)&0x0FFF;
-                    aux<<=20;
-                    aux>>=20;
-                    printf("%3d",aux);
-                  }   
-                  else
-                    if ((memoria[i]>>26 & 0x03)==2)//Directo
-                      printf("[%2d]",(memoria[i]>>12) & 0x0FFF);//aca hay algo
-                    else{//Registro
-                      if ((memoria[i]>>16 & 0x03)==0)
-                        printf("E");
-                      printf ("%X",(memoria[i]>>12 & 0x0F));   
-                        if ((memoria[i]>>16 & 0x03)==1) // registro del 4to byte
-                          printf("L");
-                        else
-                          if ((memoria[i]>>16 & 0x03)==2) // registro del 3 byte
-                              printf("H");
-                          else //registro de 2 bytes
-                              printf("X");
-                      printf(" ");
-                    }
-                    printf("%4c ",',');
-                    if ((memoria[i]>>24 & 0x03)==0){//Inmediato segudo operando
-                         aux=(memoria[i])&0x0FFF;
-                         aux<<=20;
-                         aux>>=20;
-                         printf("%3d",aux);
-                    }
-                    else
-                      if ((memoria[i]>>24 & 0x03)==2)//Directo
-                        printf("[%2d]",(memoria[i] & 0x0FFF));
-                      else{//Registro
-                        if ((memoria[i]>>4 & 0x03)==0)
-                          printf("E");
-                        printf ("%X",(memoria[i] & 0x0F));   
-                        if ((memoria[i]>>4 & 0x03)==1) // registro del 4to byte
-                          printf("L");
-                        else
-                            if ((memoria[i]>>4 & 0x03)==2) // registro del 3 byte
-                              printf("H");
-                            else //registro de 2 bytes
-                              printf("X");
-                      
-                    }
+            imprimeOperando(memoria[i]>>26 & 0x03,memoria[i]>>12&0xFFF);
+            printf("%4c ",',');
+            imprimeOperando(memoria[i]>>24 & 0x03,memoria[i]&0xFFF);
         }
         printf("\n");
         i++;
@@ -764,9 +709,31 @@ int indiceM,indiceP,j,i=low(registro[IP]),aux;
         printf(" | ");
         }
     printf("\n");
-
-
 }
+
+void imprimeOperando(int tipoOp, int op){
+    int tiporeg=op & 0x30;
+    if (tipoOp==0){                                             //Inmediato
+       printf("%2d",op);
+    }
+    else if (tipoOp==2)                                         //Directo
+        printf("[%2d]",op);
+    else if (tipoOp==1){                                        //Registro
+        if (tiporeg==0)
+            printf("E");
+        printf ("%X",(op & 0x0F));   
+        if (tiporeg==1)                                               // registro del 4to byte
+            printf("L");
+        else if (tiporeg==2)                                          // registro del 3 byte
+            printf("H");
+        else                                                          //registro de 2 bytes
+            printf("X");
+        }
+    else{                                                       //Indirecto
+        printf("[%x+ %d]",op & 0x0F,op& 0xFF0);
+    }
+}
+
 void CreaDisco()
 {   FILE* arch;
     int aux;
