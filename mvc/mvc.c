@@ -311,6 +311,7 @@ int operandoIndirecto(char* operandoEnString){
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
     registroAux[0] = '0'; 
+    rotulo rotuloAux;
     removeCorchetes(operandoEnString, cadenaAux);
     largoCadenaAux = strlen(cadenaAux);
     if (largoCadenaAux == 2)
@@ -327,10 +328,20 @@ int operandoIndirecto(char* operandoEnString){
             largoRegistroAux = 3;
         }
         memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-        if (checkStringAlfa(offsetAux))
-            resultado = 1; //registro con offset de simbolo 
+        if (checkStringAlfa(offsetAux)){ //registro con offset de simbolo 
+            
+            //el famoso transform ==================================================================================
+            
+            // rotuloAux = getRotulo(offsetAux);
+            // if (rotuloAux.tipo == 2) 
+            //     resultado = resultado | rotuloAux.posCS<<4;
+            // else (rotuloAux.tipo == 1)
+            //     resultado = resultado | anyToInt(rotuloAux.contenido, &cono)<<4;
+
+            //el famoso transform ==================================================================================
+        }
         else
-            resultado = resultado & anyToInt(offsetAux, &cono)<<4; //registro con offset de numero
+            resultado = resultado | anyToInt(offsetAux, &cono)<<4; //registro con offset de numero
     }
     return resultado;
 }
