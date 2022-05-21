@@ -94,6 +94,8 @@ int main(int argc, char const *argv[]){
                     exito=0;
                 }
                 else if (mnemonico >= 0x0 && mnemonico <= 0xB){ //2 OP
+                //transformRotulo(lineaParseada[2], mnemonico); revisar
+                //transformRotulo(lineaParseada[3], mnemonico); revisar
                     instruccion = mnemonico<<28;
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     tipoOperando2 = getTipoOperando(lineaParseada[3]);
@@ -107,7 +109,7 @@ int main(int argc, char const *argv[]){
                     instruccion |= (operando2)&0x00000FFF;
                 }
                 else if (mnemonico >= 0xF0 && mnemonico <= 0xFB){ //1 OP
-                   //transformRotulo(lineaParseada[2], mnemonico); revisar
+                //transformRotulo(lineaParseada[2], mnemonico); revisar
                     instruccion = mnemonico<<24;
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     instruccion |= tipoOperando1<<22;
@@ -217,7 +219,6 @@ int checkStringAlfa(char* cadena){ //mira si el string es solo de caracteres alf
 }
 
 int checkInmediato(char* cadena){  
-
     if (cadena[0] == '%' || cadena[0] == '#' || cadena[0] == '@' || cadena[0] == '\'' || cadena[0] == '$') //la comilla puede ser confundida
         return 1;
     if (checkNumeric(cadena))
@@ -272,10 +273,9 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
                 largoRegistroAux = 3;
             if (cadenaAux[largoRegistroAux] == '+'){
                 memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-                if (checkStringAlfa(offsetAux))
-                    resultado = 1; //registro con offset de simbolo
-                else if (offsetAux[0] != '-' && checkNumeric(offsetAux))
-                    resultado = 1; //registro con offset de numero
+                if (checkInmediato(offsetAux)) //offsetAux es el offset en string, 
+                                                //osea va a haber un operando inmediato aca
+                    resultado = 1; //en realidad 
             }
         }
     }
@@ -357,20 +357,7 @@ int operandoIndirecto(char* operandoEnString){
             largoRegistroAux = 3;
         }
         memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-        if (checkStringAlfa(offsetAux)){ //registro con offset de simbolo 
-            
-            //el famoso transform ==================================================================================
-            
-            // rotuloAux = getRotulo(offsetAux);
-            // if (rotuloAux.tipo == 2) 
-            //     resultado = resultado | rotuloAux.posCS<<4;
-            // else (rotuloAux.tipo == 1)
-            //     resultado = resultado | anyToInt(rotuloAux.contenido, &cono)<<4;
-
-            //el famoso transform ==================================================================================
-        }
-        else
-            resultado = resultado | anyToInt(offsetAux, &cono)<<4; //registro con offset de numero
+        if (checkStringAlfa(offsetAux)){ //problema con el inmediato denuevo, aca se recibe EAX+23
     }
     return resultado;
 }
@@ -456,7 +443,6 @@ int getRotulo(char* operandoEnString){
     while (i<cantRotulos && strcmp(upcaseRotulos(operandoEnString),tablaRotulos->label)!=0)
         i++;    
     return i; //i es la pos de memoria correspondiente a ese Rotulo
-             // no se encontro el rotulo
 }
 
 int checkSalto(int mnemonico){
