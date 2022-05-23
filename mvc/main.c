@@ -31,7 +31,3 @@ int main()
     freeline(parsed);
   }
 }
-ADD EAX 1
-PEPE EQU "asdas"
-add EAX PEPE
-add a [EAX+"32"]

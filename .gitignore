@@ -1,2 +1,6 @@
+*.exe
 *.temp
 *.tmp
+.vscode
+parser.*
+mvc/traductor.code-workspace
