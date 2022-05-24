@@ -15,13 +15,13 @@
 #define TODirecto 2
 #define TOIndirecto 3
 
-typedef struct simbolo
+typedef struct simbolos
 {
     int tipo; /*tipo=0 rotulo viejo, tipo=1 cte num, tipo=2 cte string */
     char *label;
     char *contenido; /*en contenido esta el string si es string, el entero si es entero, y la pos si es label*/
     int posCS; /*nunca puede ser 0 porque siempre va a estar despues de las instrucciones, si es -1 es que algo anda mal*/
-} simbolo; /*para mas comodidad se usan todos con mayusculas*/
+} simbolos; /*para mas comodidad se usan todos con mayusculas*/
 
 void setTablaCteString(int tablaString[]);
 int getMnemonico(char* cadena);
@@ -35,7 +35,7 @@ int anyToInt(char *s, char **out);
 int operandoRegistro(char *operandoEnString);
 int getOperando(int tipoOperando, char* operandoEnString);
 void getTablaSimbolos(char* nombreArchT);
-simbolo getSimbolos(char* operandoEnString);
+simbolos getSimbolos(char* operandoEnString);
 int checkSalto(int mnemonico);
 int checkSimbolo(char* operandoEnString);
 int transformSimbolo(char *);
@@ -43,14 +43,14 @@ void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* lineaParseada[]);
 void getHeader(int cantCeldas);
 int updateSegmento(char* segmento, char* tamanio);
-char *upcaseString (char *str);
+void upcaseString (char str[],char final[]);
 
-int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024, tempCS=0, cantRotulos=0, cantString=0; //exito significa 0 errores
+int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024, tempCS=0, cantSimbolos=0, cantString=0; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"RET","STOP","","","","","","","","","","","","","",""}, 
                             {"SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","PUSH","POP","CALL",""},
                             {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","SLEN","SMOV","SCMP",""}};
 
-simbolo *tablaRotulos;
+simbolos tablaSimbolos[largoMemoria];
 
     // "      LABEL: %s\n", parsed[0] 
     // "   MNEMONIC: %s\n", parsed[1] 
@@ -73,7 +73,7 @@ int main(int argc, char const *argv[]){
     strcpy(nombreArchT, argv[1]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
 
-    getTablaSimbolos(nombreArchT); //genera tabla de simbolo paralela
+    getTablaSimbolos(nombreArchT); //genera tabla de rotulos paralela
     setTablaCteString(tablaString);// crear vector de las constantes en binario y finalizar el valor del cs
 
     if ((archT = fopen(nombreArchT, "r")) != NULL){
@@ -153,24 +153,24 @@ int main(int argc, char const *argv[]){
     }
     else
         printf("no se encontro el archivo");
-    free(tablaRotulos);
+    //free(tablaRotulos);
     return 0;
 }
 
 void setTablaCteString(int tablaString[]){
 int cont=0;
-    for (int i=0;i<cantRotulos;i++){
-        if (tablaRotulos[i].tipo==2){
-            tablaRotulos[i].posCS=tempCS+cont;
-            for(int j=0;j<strlen(tablaRotulos[i].contenido);j++){
-                tablaString[cont]=tablaRotulos[i].contenido[j];
+    for (int i=0;i<cantSimbolos;i++){
+        if (tablaSimbolos[i].tipo==2){
+            tablaSimbolos[i].posCS=tempCS+cont;
+            for(int j=0;j<strlen(tablaSimbolos[i].contenido);j++){
+                tablaString[cont]=tablaSimbolos[i].contenido[j];
                 cont++;
             }
             tablaString[cont]=00;
             cont++;
         }
         else
-        tablaRotulos[i].posCS=-1;         
+        tablaSimbolos[i].posCS=-1;         
     }
     CS=tempCS+cont;
 }
@@ -228,7 +228,7 @@ int checkInmediato(char* cadena){
 
 int checkDirecto(char* cadena){ //tienen corchetes y contienen un inmediato o cte-
     char cadenaAux[10];
-    int resultado = 0;
+    int resultado=0;
     if (cadena[0] == '['){ //miro el corchete
         removeCorchetes(cadena, cadenaAux);
         resultado = checkInmediato(cadenaAux); //miro si es inmediato
@@ -296,7 +296,7 @@ int getTipoOperando(char* cadena){
 void removeCorchetes(char* cadena, char* out){ //remueve el primer y ultimo char de la cadena
     int largoCadena = strlen(cadena);
     memcpy(out,cadena+1, largoCadena-2); //preferible copiar la data a corromper cadena
-    out [largoCadena-2] = 0; //marco el fin de la cadena
+    out [largoCadena-2] ='\0'; //marco el fin de la cadena
 }
 
 int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
@@ -339,7 +339,7 @@ int operandoIndirecto(char* operandoEnString){
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
     registroAux[0] = '0'; 
-    simbolo rotuloAux;
+    simbolos rotuloAux; //no me acuerdo como definir una var de tipo struct xd
     removeCorchetes(operandoEnString, cadenaAux);
     largoCadenaAux = strlen(cadenaAux);
     if (largoCadenaAux == 2)
@@ -356,7 +356,7 @@ int operandoIndirecto(char* operandoEnString){
             largoRegistroAux = 3;
         }
         memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-        resultado=anyToInt(offsetAux,&cono)<<4|resultado; 
+        resultado=anyToInt(offsetAux,&cono)<<4|resultado; //puede ser que haya que hacer un corrimiento
         resultado<<20;
         resultado>>20;
     }
@@ -390,78 +390,72 @@ int getOperando(int tipoOperando, char operandoEnString[]){
     return resultado; // -1 = tipoOperando invalido
 }
 
-void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del duplicado ---------------------------------------------------------------------------
+void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del duplicado
     FILE *archT;
-    int bandera=0; //para saber si es malloc o realloc 
-    char linea[largoLinea], **lineaParseada,aux[11];
+    int bandera=0,auxint; //para saber si es malloc o realloc
+    char linea[largoLinea], **lineaParseada,aux[11],straux[largoLinea];
     if ((archT = fopen(nombreArchT, "r")) != NULL){
         while (fgets(linea, largoLinea, archT) != NULL){ 
             lineaParseada = parseline(linea);
-            if (!bandera && (lineaParseada[0] || (lineaParseada[7] && lineaParseada[8]))){ //crea la tabla, solo entra una vez
-                tablaRotulos=(simbolo*)malloc(sizeof(simbolo));
+            /*if (!bandera && (lineaParseada[0] || (lineaParseada[7] && lineaParseada[8]))){
+                tablaRotulos=(rotulos*)malloc(sizeof(rotulos));
                 bandera=1;
             }
-            else if (bandera && (lineaParseada[0] || (lineaParseada[7] && lineaParseada[8]))) //agranda la memoria de la tabla
-                tablaRotulos=(simbolo*)realloc(tablaRotulos,sizeof(simbolo)*(cantRotulos+1));     //en este else y en el if anterior creo la memoria dinamica, se usa la bandera para saber cuanto crear
-            if (lineaParseada[0] != 0){ //es un rotulo
-                if(!checkSimbolo(lineaParseada[0])){ // no esta repetido 
-                    tablaRotulos->tipo=0;
-                    tablaRotulos[cantRotulos].label = (char*) malloc(100);
-                    tablaRotulos[cantRotulos].contenido = (char*) malloc(100);
-                    strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[0]));
-                    sprintf((tablaRotulos[cantRotulos].contenido), "%d", tempCS);
-                    cantRotulos++;
-                    tempCS++;
-                    }
-                else{
-                    printf("Símbolo repetido.");
-                    printf("\n\n");
-                    instruccion = 0xFFFFFFFF;
-                    exito = 0;
+            else if (bandera && (lineaParseada[0] || (lineaParseada[7] && lineaParseada[8])))
+                tablaRotulos=(rotulos*)realloc(tablaRotulos,sizeof(rotulos)*cantRotulos);*/     //en este else y en el if anterior creo la memoria dinamica, se usa la bandera para saber cuanto crear
+            if ((lineaParseada[0]!=0 && checkSimbolo(lineaParseada[0]))||(lineaParseada[7] && lineaParseada[8] && checkSimbolo(lineaParseada[7]))){
+                exito=0;
+                printf("\n El simbolo esta repetido \n");
                 }
+            if (lineaParseada[0] != 0 && !checkSimbolo(lineaParseada[0])){ //tengo que usar el check rotulo para no meter repetidos
+                tablaSimbolos[cantSimbolos].tipo=0;
+                tablaSimbolos[cantSimbolos].label = (char*) malloc(100);
+                tablaSimbolos[cantSimbolos].contenido = (char*) malloc(100);
+                upcaseString(lineaParseada[0],straux);
+                strcpy(tablaSimbolos[cantSimbolos].label, straux);
+                auxint=tempCS;
+                itoa(auxint,straux,10);
+                strcpy(tablaSimbolos[cantSimbolos].contenido,straux);
+                cantSimbolos++;
+                tempCS++;
             } 
-            else if (lineaParseada[7]){ //tengo que usar el check rotulo para no meter repetidos
-                if(!checkSimbolo(lineaParseada[7])){
-                    strcpy(aux,lineaParseada[8]);
-                    if (aux[0]=='"' && aux[strlen(aux)-1]=='"') //aca tengo que definir que tipo es, si string o numerico
-                        tablaRotulos->tipo=2;
-                    else
-                        tablaRotulos->tipo=1;
-                    tablaRotulos[cantRotulos].label = (char*) malloc(100);
-                    tablaRotulos[cantRotulos].contenido = (char*) malloc(100);
-                    strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[7]));
-                    strcpy(tablaRotulos[cantRotulos].contenido,lineaParseada[8]);
-                    cantRotulos++;
-                    cantString+=strlen(lineaParseada[8])+1;
-                }
-                else{
-                    printf("Símbolo repetido.");
-                    printf("\n\n");
-                    instruccion = 0xFFFFFFFF;
-                    exito = 0;
-                }
+            else if (lineaParseada[7] && lineaParseada[8] && !checkSimbolo(lineaParseada[7])){ //tengo que usar el check rotulo para no meter repetidos
+                strcpy(aux,lineaParseada[8]);
+                if (aux[0]=='"' && aux[strlen(aux)-1]=='"')// aca tengo que definir que tipo es, si string o numerico
+                    tablaSimbolos[cantSimbolos].tipo=2;
+                else
+                    tablaSimbolos[cantSimbolos].tipo=1;
+                tablaSimbolos[cantSimbolos].label = (char*) malloc(100);
+                tablaSimbolos[cantSimbolos].contenido = (char*) malloc(100);
+                upcaseString(lineaParseada[7],straux);
+                strcpy(tablaSimbolos[cantSimbolos].label, straux);
+                strcpy(tablaSimbolos[cantSimbolos].contenido,lineaParseada[8]);
+                cantSimbolos++;
+                cantString+=strlen(lineaParseada[8])+1;
             }
-            else
+            else 
                 tempCS++;
         }
         fclose(archT);
     }
 }
 
-char *upcaseString (char *str){
-char *straux = str;
+void upcaseString (char str[],char final[]){
+char straux[largoString];
 int i;    
     for (i=0;i<strlen(str);i++)
        straux[i]=toupper(str[i]);
-    straux[i]='\n';
-    return straux;
+    straux[i]='\0';
+    strcpy(final,straux);
 }
 
-simbolo getSimbolos(char* operandoEnString){
+simbolos getSimbolos(char* operandoEnString){
     int i=0;
-    while (i<cantRotulos && strcmp(upcaseString(operandoEnString),tablaRotulos[i].label)!=0)
+    char straux[largoLinea];
+    upcaseString(operandoEnString,straux);
+    while (i<cantSimbolos && strcmp(straux,tablaSimbolos[i].label)!=0)
         i++;    
-    return tablaRotulos[i]; //i es la pos de memoria correspondiente a ese Rotulo
+    return tablaSimbolos[i]; //i es la pos de memoria correspondiente a ese Rotulo
 }
 
 int checkSalto(int mnemonico){
@@ -472,17 +466,19 @@ int checkSalto(int mnemonico){
 }
 
 int checkSimbolo(char* operandoEnString){
-int i=0; 
-        while (i<cantRotulos && stricmp(operandoEnString,tablaRotulos[i].label)!=0)
-            i++;
-        if (i<cantRotulos && strcmp(upcaseString(operandoEnString),tablaRotulos[i].label)==0)
+int i=0;
+char straux[largoLinea];
+upcaseString(operandoEnString,straux);
+        while (i<cantSimbolos && strcmp(straux,tablaSimbolos[i].label)!=0)
+          i++;
+        if (i<cantSimbolos && strcmp(straux,tablaSimbolos[i].label)==0)
             return 1;
         else
             return 0;
 }
 
 int transformSimbolo(char *operandoEnString){// tiene que ser llamado por getOperando, (este se fija si es o no rotulo)
-simbolo auxRotulo;
+simbolos auxRotulo;
 int resultado = 0;
     if (checkSimbolo(operandoEnString)){
         auxRotulo=getSimbolos(operandoEnString);
@@ -493,7 +489,7 @@ int resultado = 0;
         resultado = 1;
     }
     else {
-        printf("Símbolo inexistente:\nRótulo o constante utilizado no se encuentra en la lista de símbolos.");
+        printf("Símbolo inexistente: cuando un rótulo o constante utilizado no se encuentra en la lista de símbolos.");
         printf("\n\n");
         instruccion = 0xFFFFFFFF;
         exito = 0;
