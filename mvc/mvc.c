@@ -402,27 +402,44 @@ void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del dupli
                 bandera=1;
             }
             else if (bandera && (lineaParseada[0] || (lineaParseada[7] && lineaParseada[8]))) //agranda la memoria de la tabla
-                tablaRotulos=(simbolo*)realloc(tablaRotulos,sizeof(simbolo)*cantRotulos);     //en este else y en el if anterior creo la memoria dinamica, se usa la bandera para saber cuanto crear
-            if (lineaParseada[0] != 0 && !checkSimbolo(lineaParseada[0])){ //es un rotulo || tengo que usar el check rotulo para no meter repetidos
-                tablaRotulos->tipo=0;
-                tablaRotulos[cantRotulos].label = (char*) malloc(100);
-                tablaRotulos[cantRotulos].contenido = (char*) malloc(100);
-                strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[0]));
-                sprintf((tablaRotulos[cantRotulos].contenido), "%d", tempCS);
-                cantRotulos++;
-                tempCS++;
+                tablaRotulos=(simbolo*)realloc(tablaRotulos,sizeof(simbolo)*(cantRotulos+1));     //en este else y en el if anterior creo la memoria dinamica, se usa la bandera para saber cuanto crear
+            if (lineaParseada[0] != 0){ //es un rotulo
+                if(!checkSimbolo(lineaParseada[0])){ // no esta repetido 
+                    tablaRotulos->tipo=0;
+                    tablaRotulos[cantRotulos].label = (char*) malloc(100);
+                    tablaRotulos[cantRotulos].contenido = (char*) malloc(100);
+                    strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[0]));
+                    sprintf((tablaRotulos[cantRotulos].contenido), "%d", tempCS);
+                    cantRotulos++;
+                    tempCS++;
+                    }
+                else{
+                    printf("Símbolo repetido.");
+                    printf("\n\n");
+                    instruccion = 0xFFFFFFFF;
+                    exito = 0;
+                }
             } 
-            else if (lineaParseada[7] && lineaParseada[8] && !checkSimbolo(lineaParseada[7])){ //tengo que usar el check rotulo para no meter repetidos
-                strcpy(aux,lineaParseada[8]);
-                if (aux[0]=='"' && aux[strlen(aux)-1]=='"')// aca tengo que definir que tipo es, si string o numerico
-                    tablaRotulos->tipo=2;
-                else
-                    tablaRotulos->tipo=1;
-                tablaRotulos[cantRotulos].label = (char*) malloc(100);
-                strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[7]));
-                strcpy(tablaRotulos[cantRotulos].contenido,lineaParseada[8]);
-                cantRotulos++;
-                cantString+=strlen(lineaParseada[8])+1;
+            else if (lineaParseada[7]){ //tengo que usar el check rotulo para no meter repetidos
+                if(!checkSimbolo(lineaParseada[7])){
+                    strcpy(aux,lineaParseada[8]);
+                    if (aux[0]=='"' && aux[strlen(aux)-1]=='"') //aca tengo que definir que tipo es, si string o numerico
+                        tablaRotulos->tipo=2;
+                    else
+                        tablaRotulos->tipo=1;
+                    tablaRotulos[cantRotulos].label = (char*) malloc(100);
+                    tablaRotulos[cantRotulos].contenido = (char*) malloc(100);
+                    strcpy(tablaRotulos[cantRotulos].label, upcaseString(lineaParseada[7]));
+                    strcpy(tablaRotulos[cantRotulos].contenido,lineaParseada[8]);
+                    cantRotulos++;
+                    cantString+=strlen(lineaParseada[8])+1;
+                }
+                else{
+                    printf("Símbolo repetido.");
+                    printf("\n\n");
+                    instruccion = 0xFFFFFFFF;
+                    exito = 0;
+                }
             }
             else
                 tempCS++;
@@ -456,8 +473,8 @@ int checkSalto(int mnemonico){
 
 int checkSimbolo(char* operandoEnString){
 int i=0; 
-        while (i<cantRotulos && strcmp(upcaseString(operandoEnString),tablaRotulos[i].label)!=0)
-          i++;
+        while (i<cantRotulos && stricmp(operandoEnString,tablaRotulos[i].label)!=0)
+            i++;
         if (i<cantRotulos && strcmp(upcaseString(operandoEnString),tablaRotulos[i].label)==0)
             return 1;
         else
@@ -473,10 +490,10 @@ int resultado = 0;
             strcpy(operandoEnString,auxRotulo.contenido);
         else 
             strcpy(operandoEnString,(char*)auxRotulo.posCS);
-        resultado = resultado;
+        resultado = 1;
     }
     else {
-        printf("Símbolo inexistente: cuando un rótulo o constante utilizado no se encuentra en la lista de símbolos.");
+        printf("Símbolo inexistente:\nRótulo o constante utilizado no se encuentra en la lista de símbolos.");
         printf("\n\n");
         instruccion = 0xFFFFFFFF;
         exito = 0;
