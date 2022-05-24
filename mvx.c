@@ -148,19 +148,10 @@ void LeeArch(int memoria[],int registro[]){
     else{
         printf("El archivo fue validado\n");
     }
-    /*
     if(header[1]+header[2]+header[3]+header[4]>TM){
         printf("Los valores asignados a los segmentos exceden el tamaño de la memoria.");
         exit(EXIT_FAILURE);
     }
-    */
-
-   //* PRUEBA TEMPORAL HASTA QUE CONSIGA UN ARCHIVO PARA TESTEAR//*
-   header[1]=10;
-   header[2]=20;
-   header[3]=40;
-   header[4]=50;
-    //* PRUEBA TEMPORAL HASTA QUE CONSIGA UN ARCHIVO PARA TESTEAR//*
     i=0;
     registro[CS]=header[4];
     registro[CS]<<=16;
@@ -196,8 +187,6 @@ void LeeArch(int memoria[],int registro[]){
 
     registro[BP]=1;
     registro[BP]<<=16;
-
-    registro[IP]=0;
     i=0;
     fread(memoria+i,sizeof(int),1,arch);
     while(!feof(arch)){
@@ -263,7 +252,7 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                     if(direccion>inicioReg && direccion<finReg)
                         *A=&memoria[direccion];
                     else{
-                        printf("Segmentation default");
+                        printf("Segmentation fault");
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -394,8 +383,8 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 /*-----------------------------------------------------Funciones de 1 operando:------------------------------------------------*/ 
 
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
-    int indice,contc,cont=0,longitud;
-    char caracter[]={};
+    int indice,contc,cont=0,longitud,i;
+    char caracter[255];
     indice=dirmemoria(registro[EDX],registro,memoria);
 
     if ((*A & mascaraA) == 1){// lectura // revisar contadores
@@ -460,9 +449,12 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 if ((registro[EAX]&0x0800)>>11==0)
                     printf("[%04d]: ",(indice+cont));
                 scanf("%s",caracter);
-                for (int i = 0; i < registro[ECX]&REG_MASK; i++){
+                i=0;
+                while (i<strlen(caracter) && i<registro[ECX]&REG_MASK){
                     memoria[indice+i]=caracter[i];
+                    i++;
                 }
+                memoria[indice+registro[ECX]&REG_MASK]='\0';
             }
             else if ((*A & mascaraA) == 4){ //String write
                 if ((registro[EAX]&0x0800)>>11==0)
@@ -473,13 +465,17 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 if ((registro[EAX]&0x0100)>>8==0)
                     printf("\n");
             }
-                else
-                    if ((*A & mascaraA) == 7) //clear screen
-                        system("cls");    
+            else
+                if ((*A & mascaraA) == 7) //clear screen
+                    system("cls");    
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=dirinversa(A,registro,memoria);
+    registro[IP]&=0xFFFF0000;
+    registro[IP]|=get_value(A,mascaraA)& REG_MASK;
+    
+    
+    //Como en la especificacion de la parte 1 
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -606,26 +602,27 @@ int high(int a){
 }
 
 int dirmemoria(int inst, int registro[],int memoria[]){
-    int resultado,aux=high(inst);
-    if(aux==0){
+    int resultado,codseg=high(inst);
+
+    if(codseg==0){
         resultado=low(inst)+ low(registro[DS]);
     }
-    else if(aux==1){
+    else if(codseg==1){
         resultado=low(inst)+low(registro[SS]);
     }
-    else if (aux==2){
+    else if (codseg==2){
         resultado=low(inst)+low(registro[ES]);
     }
-    else if(aux==3){
+    else if(codseg==3){
         resultado=low(inst)+low(registro[CS]);
     }
     return resultado;//Direccion absoluta del arreglo memoria
 }
-
+/*
 int dirinversa(int *dir, int registro[],int memoria[]){
-    int aux=dir-memoria;
+    int aux=(int)(dir-memoria);
     int resultado;
-    if(aux>=low(registro[DS]) && aux<= (high(registro[DS]) + low(registro[DS]))){
+    if(aux>=low(registro[DS]) && aux<= (high(registro[DS]) + low(registro[DS]))){//Si esta dentro del DS
         resultado=DS;
         resultado<<=16;
         resultado|= aux-low(registro[DS]);
@@ -640,14 +637,14 @@ int dirinversa(int *dir, int registro[],int memoria[]){
         resultado<<=16;
         resultado|= aux-low(registro[ES]);
     }
-    else if(aux>=low(registro[CS]) && aux<= (high(registro[CS]) + low(registro[CS]))){
+    else if(aux>=low(registro[CS]) && aux<= (high(registro[CS]) + low(registro[CS]))){//Si esta dentro del CS (ESTE ES EL QUE SE DEBERIA EJECUTAR SIEMPRE)
         resultado=CS;
         resultado<<=16;
         resultado|= aux-low(registro[CS]);
-    }
+    
     return resultado;
 }
-
+*/
 int checkFlag(char bandera []){ 
     int i=0;
     while (i<_argc && strcmp(_argv[i],bandera)!=0)
