@@ -77,6 +77,7 @@ void imprimeOperando(int , int);
 int low(int);
 int high(int);
 int dirmemoria(int , int [], int[]);
+int dirinversa(int *, int [],int []);
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
@@ -478,9 +479,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=low(get_value(A,mascaraA)) ; // curiosa aplicacion, que hacer? 
-    int auxA=low(get_value(A,mascaraA));
-    set_value(auxA,mascaraA);
+    registro[IP]=dirinversa(A,registro,memoria);
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -536,13 +535,21 @@ void NOT(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 void PUSH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
+    if(low(registro[SS])==low(registro[SP])){
+        printf("Stack overflow. El programa finalizo incorrectamente");
+        exit(EXIT_FAILURE);
+    }
     registro[SP]--;
     set_value (memoria+dirmemoria(registro[SP],registro,memoria),auxA,mascaraA);
 }
 void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
+    if(low(registro[SS])+high(registro[SS])==low(registro[SP])){
+        printf("Stack underoverflow. El programa finalizo incorrectamente");
+        exit(EXIT_FAILURE);
+    }
     int auxA=get_value(memoria+dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK);
     registro[SP]++;
-    set_value (A,auxA,mascaraA);
+    set_value (A,auxA,EXTENDED_MASK);
 }
 void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
@@ -552,13 +559,16 @@ void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int 
 
 /*Funciones de 0 operandos:*/
 void RET(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    int aux;
-    POP(&aux,mascaraA,B,C,D,mascaraB,memoria,registro);
-    JMP(&aux,EXTENDED_MASK,B,C,D,mascaraB,memoria,registro);
+    if(low(registro[SS])+high(registro[SS])==low(registro[SP])){
+        printf("Stack underflow. El programa finalizo incorrectamente");
+        exit(EXIT_FAILURE);
+    }
+    JMP(memoria+dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK,B,C,D,mascaraB,memoria,registro);
+    registro[SP]++;
 }
 
 void STOP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=(registro[DS]>>16 + low(registro[DS]));
+    registro[IP]=(high(registro[CS]) + low(registro[CS])+1);
 }
 
 /*Otras funciones utiles*/
@@ -613,8 +623,29 @@ int dirmemoria(int inst, int registro[],int memoria[]){
 }
 
 int dirinversa(int *dir, int registro[],int memoria[]){
-    int aux=(int) dir-memoria;
-
+    int aux=dir-memoria;
+    int resultado;
+    if(aux>=low(registro[DS]) && aux<= (high(registro[DS]) + low(registro[DS]))){
+        resultado=DS;
+        resultado<<=16;
+        resultado|= aux-low(registro[DS]);
+    }
+    else if(aux>=low(registro[SS]) && aux<= (high(registro[SS]) + low(registro[SS]))){
+        resultado=SS;
+        resultado<<=16;
+        resultado|= aux-low(registro[SS]);
+    }
+    else if(aux>=low(registro[ES]) && aux<= (high(registro[ES]) + low(registro[ES]))){
+        resultado=ES;
+        resultado<<=16;
+        resultado|= aux-low(registro[ES]);
+    }
+    else if(aux>=low(registro[CS]) && aux<= (high(registro[CS]) + low(registro[CS]))){
+        resultado=CS;
+        resultado<<=16;
+        resultado|= aux-low(registro[CS]);
+    }
+    return resultado;
 }
 
 int checkFlag(char bandera []){ 
@@ -628,7 +659,7 @@ void breakpoint(int registro[], int memoria[]){
     char sig[10];
     int aux,aux1;
     
-    printf("[%04d] cmd: ",low(registro[IP])-1);
+    printf("[%04d] cmd: ",dirmemoria(registro[IP],registro,memoria)-1);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
         dividenum(sig,&aux,&aux1);
@@ -637,7 +668,7 @@ void breakpoint(int registro[], int memoria[]){
         else
           for (int i=aux;i<=aux1;i++)
             printf("[%04d] %08X %4d \n",i,memoria[i],memoria[i]);
-        printf("[%04d] cmd: ",low(registro[IP])-1);
+        printf("[%04d] cmd: ",dirmemoria(registro[IP],registro,memoria)-1);
         fgets(sig,10,stdin);
     }
     if (sig[0]=='p'){
@@ -672,7 +703,7 @@ void dividenum(char sig[],int *aux, int *aux1){
 void disassembler(int registro[],int memoria[]){ // ver impresion dessassembler
 char* Mnemonicos[34]= {"MOV","ADD","SUB","SWAP","MUL","DIV","CMP","SHL","SHR","AND","OR","XOR","SLEN","SMOV","SCMP","0","SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN","LDL","LDH","RND","NOT","PUSH","POP","CALL","0","RET","STOP"};
 char* Procesador[16]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
-int indiceM,indiceP,j,i=low(registro[IP]),tipoOp;
+int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
     printf("Codigo: \n");
     if(i>5)
         i-=5;
