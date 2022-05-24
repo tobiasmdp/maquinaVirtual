@@ -76,7 +76,7 @@ void disassembler(int [],int []);
 void imprimeOperando(int , int);
 int low(int);
 int high(int);
-int *dirmemoria(int , int [], int[]);
+int dirmemoria(int , int [], int[]);
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
@@ -95,9 +95,9 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
-    while (low(registro[IP])<=(registro[CS]>>16 + registro[CS])){
+    while (dirmemoria(registro[IP],registro,memoria)<=(high(registro[CS]) + low(registro[CS])) && dirmemoria(registro[IP],registro,memoria)>=(low(registro[CS]))){
         indicef=0; 
-        inst=memoria[low(registro[IP])];
+        inst=memoria[dirmemoria(registro[IP],registro,memoria)];
         registro[IP]++;
         if ((inst&0xF0000000)==0xF0000000){
             indicef+=16;
@@ -257,7 +257,7 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                     offset<<=24;
                     offset>>=24;
                     inicioReg=low(registro[high(registro[numreg])]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
-                    finReg=inicioReg+high(registro[high(registro[numreg])]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
+                    finReg=memoria[dirmemoria(registro[numreg],registro,memoria)];// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
                     direccion=inicioReg+low(registro[numreg])+offset;
                     if(direccion>inicioReg && direccion<finReg)
                         *A=&memoria[direccion];
@@ -395,7 +395,7 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud;
     char caracter[]={};
-    indice=(int) (dirmemoria(registro[EDX],registro,memoria) - memoria);  //Aritmetica de punteros en todo su esplendor, la pregunta es le sumo 1? Probarlo
+    indice=dirmemoria(registro[EDX],registro,memoria);
 
     if ((*A & mascaraA) == 1){// lectura // revisar contadores
         while (cont<(registro[ECX]&REG_MASK)){
@@ -479,6 +479,8 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     registro[IP]=low(get_value(A,mascaraA)) ; // curiosa aplicacion, que hacer? 
+    int auxA=low(get_value(A,mascaraA));
+    set_value(auxA,mascaraA);
 }
 
 void JZ(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -535,16 +537,16 @@ void NOT(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void PUSH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     registro[SP]--;
-    set_value (dirmemoria(registro[SP],registro,memoria),auxA,mascaraA);
+    set_value (memoria+dirmemoria(registro[SP],registro,memoria),auxA,mascaraA);
 }
 void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    int auxA=get_value(dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK);
+    int auxA=get_value(memoria+dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK);
     registro[SP]++;
     set_value (A,auxA,mascaraA);
 }
 void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    PUSH(dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);//Quiza sea mejor que dir memoria me devuelva un puntero? Curioso 
+    PUSH(memoria+dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);//Quiza sea mejor que dir memoria me devuelva un puntero? Curioso 
     JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
@@ -593,7 +595,7 @@ int high(int a){
     return (a>>16) & REG_MASK;
 }
 
-int *dirmemoria(int inst, int registro[],int memoria[]){
+int dirmemoria(int inst, int registro[],int memoria[]){
     int resultado,aux=high(inst);
     if(aux==0){
         resultado=low(inst)+ low(registro[DS]);
@@ -607,7 +609,12 @@ int *dirmemoria(int inst, int registro[],int memoria[]){
     else if(aux==3){
         resultado=low(inst)+low(registro[CS]);
     }
-    return &memoria[resultado];
+    return resultado;//Direccion absoluta del arreglo memoria
+}
+
+int dirinversa(int *dir, int registro[],int memoria[]){
+    int aux=(int) dir-memoria;
+
 }
 
 int checkFlag(char bandera []){ 
