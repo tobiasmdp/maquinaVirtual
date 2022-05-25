@@ -8,7 +8,7 @@
       "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
       "args": [
         "test.asm", 
-        "test.mv1"
+        "test.mv2"
       ],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
