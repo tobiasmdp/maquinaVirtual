@@ -1,8 +1,11 @@
         pepe1 EQU 33
         pepe2 Equ -44
+
+        ;
+        ;Directo con simbolo
+        mov [pepe1] ,22
         ;
         ;prueba de negativos
-        mov [EAX-22] ,22
         mov [EAX+pepe1] ,22 ;positivo  33
         mov [EAX+pepe2] ,22 ;negativo  -44
         mov [EAX-pepe1] ,22 ;negativo  -33

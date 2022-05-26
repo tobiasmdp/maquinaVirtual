@@ -46,6 +46,7 @@ void getHeader(int cantCeldas);
 int updateSegmento(char* segmento, char* tamanio);
 void upcaseString (char str[],char final[]);
 int checkFormatoSimbolo(char* cadena);
+void addCorchetes(char* cadena, char* out);
 
 int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024, tempCS=0, cantSimbolos=0, cantString=0; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"RET","STOP","","","","","","","","","","","","","",""}, 
@@ -77,7 +78,7 @@ int main(int argc, char const *argv[]){
 
     getTablaSimbolos(nombreArchT); //genera tabla de rotulos paralela
     setTablaCteString(tablaString);// crear vector de las constantes en binario y finalizar el valor del cs
-
+    
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
@@ -102,7 +103,7 @@ int main(int argc, char const *argv[]){
                     instruccion |= tipoOperando1<<26;
                     instruccion |= tipoOperando2<<24;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
-                    printf("offset:%d, Hexa:%03X\n",(operando1>>4), operando1&0xFFF);
+                    printf("offset:%d simbolo:%d, Hexa:%03X\n",(operando1>>4),operando1, operando1&0xFFF);
                     operando2 = getOperando(tipoOperando2, lineaParseada[3]);
                     checkTruncado(operando1,12);
                     checkTruncado(operando2,12);
@@ -226,21 +227,19 @@ int checkFormatoSimbolo(char* cadena){//check if cumple con formato de un simbol
     if (largoCadena <= 10 && largoCadena >= 3 && isalpha(cadena[0])){
         memcpy(cadenaAux, cadena, 2);
         cadenaAux[2] = '\0';
-        if (checkRegistro(cadenaAux)) // check resgistro largo 2
+        if (checkRegistro(cadenaAux)) // check si contiene resgistro largo 2
             contieneRegistro = 2; //asigno el largo del registro
         else{
             memcpy(cadenaAux, cadena, 3);
             cadenaAux[3] = '\0';
-            if (checkRegistro(cadenaAux)) // check resgistro largo 3
+            if (checkRegistro(cadenaAux)) // check si contiene resgistro largo 3
                 contieneRegistro = 3;
         }
         if (contieneRegistro){ //si contiene registro
             if (largoCadena == contieneRegistro) //si es solo un registro
                 return 0;
             if (cadena[contieneRegistro] == '+' || cadena[contieneRegistro] == '-'){ //si le sigue un + o - al registro
-                memcpy(cadenaAux, cadena+contieneRegistro+1, largoCadena-contieneRegistro-1);  //largo del registro = contieneRegistro
-                cadenaAux[largoCadena-contieneRegistro-1] = '\0';
-                return !checkInmediato(cadenaAux); //si le sigue un inmediato valido al +
+                return 0;
             }
         }
         return 1;
@@ -293,14 +292,15 @@ int checkRegistro(char* cadena){
 
 int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un offset
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
-    char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo]; 
-    registroAux[0] = '0'; //----------------------------------------------->esto no va 
-    if (cadena[0] == '[') {//miro el corchete
-        removeCorchetes(cadena, cadenaAux);
+    char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo];
+    if (cadena[0] == '[') { // miro el corchete
+        removeCorchetes(cadena, cadenaAux); 
         largoCadenaAux = strlen(cadenaAux);
-        if (largoCadenaAux == 2 || largoCadenaAux == 3){//registro largo 2 registro largo 3
-            if (checkRegistro(cadenaAux))        
-                resultado = 1;
+        if (largoCadenaAux == 2 || largoCadenaAux == 3){//registro largo 2  || registro largo 3
+            if (checkRegistro(cadenaAux)){
+                resultado = 1; 
+                strcpy(cadena, cadenaAux);
+            }     
         }
         else if (largoCadenaAux >= 3){
             if (cadenaAux[2] == '+' || cadenaAux[2] == '-')
@@ -310,8 +310,11 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
             if (cadenaAux[largoRegistroAux] == '+' || cadenaAux[largoRegistroAux] == '-'){ //miro si existe un offset
                 memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
                 offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0';
-                if (checkInmediato(offsetAux))
+                if (checkInmediato(offsetAux)){
                     resultado=1;
+                    //strcpy(cadenaAux+largoRegistroAux+1, offsetAux);
+                    strcpy(cadena, cadenaAux);
+                }
             }
         }   
     }
@@ -334,6 +337,17 @@ void removeCorchetes(char* cadena, char* out){ //remueve el primer y ultimo char
     int largoCadena = strlen(cadena);
     memcpy(out,cadena+1, largoCadena-2); //preferible copiar la data a corromper cadena
     out [largoCadena-2] ='\0'; //marco el fin de la cadena
+}
+
+void addCorchetes(char* cadena, char* out){ //añade corchetes al string
+    int i =1;
+    out[0] = '[';
+    while (cadena[i-1]){
+        out[i] = cadena[i-1];
+        i++;
+    }
+    out[i]=']';
+    out[i+1]='\0';
 }
 
 int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
@@ -377,7 +391,7 @@ int operandoIndirecto(char* operandoEnString){
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
     registroAux[0] = '0'; 
     simbolo rotuloAux; 
-    removeCorchetes(operandoEnString, cadenaAux);
+    strcpy(cadenaAux, operandoEnString);
     largoCadenaAux = strlen(cadenaAux);
     if (largoCadenaAux == 2)
         resultado = toupper(cadenaAux[0])-55; //registro largo 2
@@ -412,11 +426,10 @@ int getOperando(int tipoOperando, char operandoEnString[]){
         resultado = operandoRegistro(operandoEnString);
     }
     else if (tipoOperando == TODirecto){
-        removeCorchetes(operandoEnString, operandoAux);
         if (operandoEnString[0] == '\'') //los que llevan comillas se asumen q son de 1 solo caracter
             resultado = (int)operandoEnString[1];
         else
-            resultado = anyToInt(operandoAux, &cono);
+            resultado = anyToInt(operandoEnString, &cono);
     }
     else if (tipoOperando == TOInmediato){
         if (operandoEnString[0] == '\'')
@@ -425,7 +438,6 @@ int getOperando(int tipoOperando, char operandoEnString[]){
             resultado = anyToInt(operandoEnString, &cono); 
     }
     else if (tipoOperando == TOIndirecto){
-        removeCorchetes(operandoEnString, operandoAux);
         resultado = operandoIndirecto(operandoEnString);
     }
     return resultado; // -1 = tipoOperando invalido
