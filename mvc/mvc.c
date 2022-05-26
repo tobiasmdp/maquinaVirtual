@@ -84,6 +84,13 @@ int main(int argc, char const *argv[]){
 
             lineaParseada = parseline(linea); // parser catedra
             
+            char simbolo[20];
+            strcpy(simbolo,lineaParseada[8]);
+            char* cono;
+            int somboloI = anyToInt(simbolo,&cono);
+            somboloI *=-1;
+            printf("asdas");
+
             if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion con mnemmonicco
                 instruccion=0;
 
@@ -233,7 +240,9 @@ int checkFormatoSimbolo(char* cadena){//check if cumple con formato de un simbol
                 contieneRegistro = 3;
         }
         if (contieneRegistro){ //si contiene registro
-            if (cadena[contieneRegistro] == '+'){ //si le sigue un + al registro
+            if (largoCadena == contieneRegistro+2 && cadena[contieneRegistro+1] == ']') //si es solo un registro
+                return 0;
+            if (cadena[contieneRegistro] == '+' || cadena[contieneRegistro] == '-'){ //si le sigue un + o - al registro
                 memcpy(cadenaAux, cadena+contieneRegistro+1, largoCadena-contieneRegistro-1);  //largo del registro = contieneRegistro
                 cadenaAux[largoCadena-contieneRegistro-1] = '\0';
                 return !checkInmediato(cadenaAux); //si le sigue un inmediato valido al +
@@ -290,7 +299,7 @@ int checkRegistro(char* cadena){
 int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un offset
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo]; 
-    registroAux[0] = '0'; 
+    registroAux[0] = '0'; //----------------------------------------------->esto no va 
     if (cadena[0] == '[') {//miro el corchete
         removeCorchetes(cadena, cadenaAux);
         largoCadenaAux = strlen(cadenaAux);
@@ -299,13 +308,13 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
                 resultado = 1;
         }
         else if (largoCadenaAux >= 3){
-            if (cadenaAux[2] == '+')
+            if (cadenaAux[2] == '+' || cadenaAux[2] == '-')
                 largoRegistroAux = 2; 
-            else if (cadenaAux[3] == '+')
+            else if (cadenaAux[3] == '+' || cadenaAux[3] == '-')
                 largoRegistroAux = 3;
-            if (cadenaAux[largoRegistroAux] == '+'){ //miro si existe un offset
+            if (cadenaAux[largoRegistroAux] == '+' || cadenaAux[largoRegistroAux] == '-'){ //miro si existe un offset
                 memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-                offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0';
+                offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0'; //-------------> esto me parece q copia mal
                 if (checkInmediato(offsetAux))
                     resultado=1;
             }
@@ -369,7 +378,7 @@ int operandoRegistro(char *operandoEnString){
 }
 
 int operandoIndirecto(char* operandoEnString){
-    int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
+    int resultado = 0, largoCadenaAux, largoRegistroAux = 0, offset;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo], *cono; 
     registroAux[0] = '0'; 
     simbolo rotuloAux; 
@@ -380,7 +389,7 @@ int operandoIndirecto(char* operandoEnString){
     else if (largoCadenaAux == 3)
         resultado = toupper(cadenaAux[1])-55; //registro largo 3
     else{
-        if (cadenaAux[2] == '+'){
+        if (cadenaAux[2] == '+' || cadenaAux[2] == '-'){
             resultado = toupper(cadenaAux[0])-55; 
             largoRegistroAux = 2;
         }
@@ -390,7 +399,10 @@ int operandoIndirecto(char* operandoEnString){
         }
         memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
         offsetAux[largoCadenaAux-largoRegistroAux] = '\0';
-        resultado=anyToInt(offsetAux,&cono)<<4|resultado; //puede ser que haya que hacer un corrimiento
+        offset = anyToInt(offsetAux,&cono);
+        if (cadenaAux[largoRegistroAux] == '-')
+            offset *= -1;
+        resultado=offset<<4|resultado; //puede ser que haya que hacer un corrimiento
         resultado<<20;
         resultado>>20;
     }

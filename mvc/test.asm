@@ -1,7 +1,11 @@
-        pepe1 EQU 33
-        pepe2 Equ 44
+        pepe1 EQU +33
+        pepe2 Equ -44
+
+        ;
+        ;prueba de negativos
         ;
         ;indirectos
+        mov     [EAx] ,22
         mov     [EAX+22]     ,   %FF 
         mov     [EAX+pepe1]     ,   %FF 
         mov     [EAX+pepe2]     ,   %FF 
