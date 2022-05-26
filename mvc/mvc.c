@@ -83,13 +83,6 @@ int main(int argc, char const *argv[]){
         while (fgets(linea, largoLinea, archT) != NULL){ // comienza el ciclo de lectura linea por linea
 
             lineaParseada = parseline(linea); // parser catedra
-            
-            char simbolo[20];
-            strcpy(simbolo,lineaParseada[8]);
-            char* cono;
-            int somboloI = anyToInt(simbolo,&cono);
-            somboloI *=-1;
-            printf("asdas");
 
             if ((lineaParseada[1] != 0)){ //si la linea se considera instruccion con mnemmonicco
                 instruccion=0;
@@ -109,6 +102,7 @@ int main(int argc, char const *argv[]){
                     instruccion |= tipoOperando1<<26;
                     instruccion |= tipoOperando2<<24;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
+                    printf("offset:%d, Hexa:%03X\n",(operando1>>4), operando1&0xFFF);
                     operando2 = getOperando(tipoOperando2, lineaParseada[3]);
                     checkTruncado(operando1,12);
                     checkTruncado(operando2,12);
@@ -135,7 +129,8 @@ int main(int argc, char const *argv[]){
             }
             else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
                 updateSegmento(lineaParseada[5], lineaParseada[6]);
-                printeo(dirMem, instruccion, lineaParseadaOriginal);
+                if(argc <4 || (strcmp(argv[3],"-o") != 0))
+                    printeo(dirMem, instruccion, lineaParseada);
                 if (DS + ES + SS + CS > largoMemoria){
                     printf("Valores inapropiado en directiva");
                     printf("\n\n");
@@ -143,9 +138,9 @@ int main(int argc, char const *argv[]){
                     exito = 0;
                 }
             }  
-            else if(lineaParseada[4] != 0){ //linea comentario
-                printf("%s",lineaParseada[4]);
-                printf("\n\n");
+            else if(lineaParseada[4] != 0 || lineaParseada[7] != 0){ //linea comentario
+                if(argc <4 || (strcmp(argv[3],"-o") != 0))
+                    printeo(dirMem, instruccion, lineaParseada);
             }
                 
             freeline(lineaParseada);
@@ -240,7 +235,7 @@ int checkFormatoSimbolo(char* cadena){//check if cumple con formato de un simbol
                 contieneRegistro = 3;
         }
         if (contieneRegistro){ //si contiene registro
-            if (largoCadena == contieneRegistro+2 && cadena[contieneRegistro+1] == ']') //si es solo un registro
+            if (largoCadena == contieneRegistro) //si es solo un registro
                 return 0;
             if (cadena[contieneRegistro] == '+' || cadena[contieneRegistro] == '-'){ //si le sigue un + o - al registro
                 memcpy(cadenaAux, cadena+contieneRegistro+1, largoCadena-contieneRegistro-1);  //largo del registro = contieneRegistro
@@ -314,7 +309,7 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
                 largoRegistroAux = 3;
             if (cadenaAux[largoRegistroAux] == '+' || cadenaAux[largoRegistroAux] == '-'){ //miro si existe un offset
                 memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-                offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0'; //-------------> esto me parece q copia mal
+                offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0';
                 if (checkInmediato(offsetAux))
                     resultado=1;
             }
@@ -398,7 +393,7 @@ int operandoIndirecto(char* operandoEnString){
             largoRegistroAux = 3;
         }
         memcpy(offsetAux, cadenaAux+largoRegistroAux+1, largoCadenaAux-largoRegistroAux-1);
-        offsetAux[largoCadenaAux-largoRegistroAux] = '\0';
+        offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0';
         offset = anyToInt(offsetAux,&cono);
         if (cadenaAux[largoRegistroAux] == '-')
             offset *= -1;

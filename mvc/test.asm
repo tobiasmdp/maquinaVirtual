@@ -1,8 +1,15 @@
-        pepe1 EQU +33
+        pepe1 EQU 33
         pepe2 Equ -44
-
         ;
         ;prueba de negativos
+        mov [EAX-22] ,22
+        mov [EAX+pepe1] ,22 ;positivo  33
+        mov [EAX+pepe2] ,22 ;negativo  -44
+        mov [EAX-pepe1] ,22 ;negativo  -33
+        mov [EAX-pepe2] ,22 ;positivo  44
+        mov [eax-+22] ,22; negativo -22
+        mov [eax+-22] ,22; negativo -22, en hexa 
+        mov [eax--22] ,22; positivo 22, en hexa 16
         ;
         ;indirectos
         mov     [EAx] ,22
