@@ -231,7 +231,7 @@ void ExtraerDosOperandos(int inst,int **A,int **B,int *C, int *D, int memoria[],
 
 void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int registro[],int *mascaraA){
     int TipoReg=operando>>4 & 0x03;
-    int numreg,offset,direccion,inicioReg,finReg;
+    int numreg,offset,direccion,inicioReg,finReg,Segmento;
     if (TipoOp==0){                                                         // Inmediato
             *C=operando;
             *C<<=16; 
@@ -239,8 +239,13 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
             *A=C;
         }
         else
-            if (TipoOp==2)                                                  // Directo
+            if (TipoOp==2){                                                  // Directo
+                if (operando <0 || operando>high(registro[DS])){
+                    printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                    exit(EXIT_FAILURE);
+                }
                 *A=&memoria[low(registro[DS])+operando];
+            }
             else
                 if(TipoOp==1){                                               // Registro
                     *A=&registro[operando & 0x0F];
@@ -253,16 +258,21 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                 }                                                                 // Registro de los 4 bytes sale directo
                 else{                                                       // Indirecto
                     numreg=operando & 0x0F;
+                    Segmento=high(registro[numreg]);
+                    if (Segmento<0 ||Segmento>15){
+                        printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                        exit(EXIT_FAILURE);
+                    }
                     offset=(operando>>4) & 0x0FF;
                     offset<<=24;
                     offset>>=24;
-                    inicioReg=low(registro[high(registro[numreg])]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
-                    finReg=inicioReg+high(registro[high(registro[numreg])]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
+                    inicioReg=low(registro[Segmento]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
+                    finReg=inicioReg+high(registro[high(Segmento)]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
                     direccion=inicioReg+low(registro[numreg])+offset;
                     if(direccion>inicioReg && direccion<finReg)
                         *A=&memoria[direccion];
                     else{
-                        printf("Segmentation fault");
+                        printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -365,8 +375,8 @@ void SMOV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int 
 void SCMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
     int auxB=get_value(B,mascaraB);
-    registro[CC]=0;
-    while ((auxA!=0 || auxB!=0) && (registro[CC]&1)==1){
+    registro[CC]=1;
+    while ((auxA!=0 || auxB!=0) && (registro[CC]&0x01)==1){
         registroCC(auxA-auxB,registro);
         A++;
         B++;
@@ -393,13 +403,17 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 /*-----------------------------------------------------Funciones de 1 operando:------------------------------------------------*/ 
 
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
-    int indice,contc,cont=0,longitud,i=0,aux;
+    int indice,contc,cont=0,longitud,i=0,aux,segmento=high(registro[EDX]);
     char caracter[255];
     indice=dirmemoria(registro[EDX],registro,memoria);
     int numCil, numCab,numSec,CantSectores,numDisco;
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
+        if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
+            printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+            exit(EXIT_FAILURE);
+        }
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
@@ -426,6 +440,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     }
     else 
       if (Sys == 2){ // escritura
+        if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
+                printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                exit(EXIT_FAILURE);
+        }
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
@@ -458,9 +476,13 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         else
             if (Sys == 3){ //String read
                 if ((registro[EAX]&0x0800)>>11==0)
-                    printf("[%04d]: ",(indice+cont));
+                    printf("[%04d]: ",(indice+i));
                 scanf("%s",caracter);
                 i=0;
+                if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento]) ){
+                    printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                    exit(EXIT_FAILURE);
+                }
                 while (i<strlen(caracter) && i<registro[ECX]&REG_MASK){
                     memoria[indice+i]=caracter[i];
                     i++;
@@ -468,7 +490,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 memoria[indice+i]='\0';
             }
             else if (Sys == 4){ //String write
-                
+                if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
+                    printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                    exit(EXIT_FAILURE);
+                }
                 if ((registro[EAX]&0x0800)>>11==0)
                     printf("[%04d]: ",(indice+i));
                 while (memoria[indice+i]!=0){
@@ -630,7 +655,14 @@ int get_value(int *a, int mask){
     if((mask&0xFF)==0){
         result=result>>8;
     }
-    
+    if((mask==HIGH_MASK || mask==LOW_MASK)){
+        result<<=24;
+        result>>=24;
+    }
+    if((mask==REG_MASK)){
+        result<<=16;
+        result>>=16;
+    }
     return result;
 }
 
@@ -651,18 +683,25 @@ int high(int a){
 
 int dirmemoria(int inst, int registro[],int memoria[]){//le paso una indireccion
     int resultado,codseg=high(inst);
-
-    if(codseg==0){
+    if (low(inst)<0){
+        printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+        exit(EXIT_FAILURE);
+    }
+    if(codseg==0 && low(inst)<= high(registro[DS]) ){
         resultado=low(inst)+ low(registro[DS]);
     }
-    else if(codseg==1){
+    else if(codseg==1 && low(inst)<= high(registro[SS])){
         resultado=low(inst)+low(registro[SS]);
     }
-    else if (codseg==2){
+    else if (codseg==2 && low(inst)<= high(registro[ES])){
         resultado=low(inst)+low(registro[ES]);
     }
-    else if(codseg==3){
+    else if(codseg==3 && low(inst)<= high(registro[CS])){
         resultado=low(inst)+low(registro[CS]);
+    }
+    else{
+        printf("Los valores asignados a los segmentos exceden el tamaño de la memoria.");
+        exit(EXIT_FAILURE);
     }
     return resultado;//Direccion absoluta del arreglo memoria
 }
@@ -815,7 +854,7 @@ void imprimeOperando(int tipoOp, int op){
             printf("X");
         }
     else{                                                       //Indirecto
-        printf("[%x+ %d]",op & 0x0F,op& 0xFF0);
+        printf("[E%XX+ %d]",op & 0x0F,op& 0xFF0);
     }
 }
 
