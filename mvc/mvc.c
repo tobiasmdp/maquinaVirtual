@@ -47,6 +47,7 @@ int updateSegmento(char* segmento, char* tamanio);
 void upcaseString (char str[],char final[]);
 int checkFormatoSimbolo(char* cadena);
 void addCorchetes(char* cadena, char* out);
+long long anyToLong(char *s, char **out);
 
 int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024, tempCS=0, cantSimbolos=0, cantString=0; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"RET","STOP","","","","","","","","","","","","","",""}, 
@@ -68,7 +69,7 @@ simbolo tablaSimbolos[largoMemoria];
 int main(int argc, char const *argv[]){
     FILE *archT, *archB;
     int mnemonico, operando1, operando2, tipoOperando1, tipoOperando2, dirMem=0;
-    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[largoParser];
+    char nombreArchT[largoString], nombreArchB[largoString],linea[largoLinea], **lineaParseada, * lineaParseadaOriginal[largoParser], *cono;
 
     // se usa la lineaParseadaOriginal por el mnemonico, que se transforma en un int hacia la instruccion correspondiente, 
     // pero luego al momento de mostrar por pantalla, se requiere el mnemonico original, no el numero de celda al cual va a saltar
@@ -130,14 +131,17 @@ int main(int argc, char const *argv[]){
                 dirMem++;
             }
             else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
-                updateSegmento(lineaParseada[5], lineaParseada[6]);
-                if(argc <4 || (strcmp(argv[3],"-o") != 0))
-                    printeo(dirMem, instruccion, lineaParseada);
-                if (DS + ES + SS + CS > largoMemoria){
+                long int aux1;
+                if (2147483647< anyToInt(lineaParseada[8],&cono) && 2147483647>anyToInt(lineaParseada[8],&cono)){ 
                     printf("Valores inapropiado en directiva");
                     printf("\n\n");
                     instruccion = 0xFFFFFFFF;
                     exito = 0;
+                }
+                else{
+                    updateSegmento(lineaParseada[5], lineaParseada[6]);
+                    if(argc <4 || (strcmp(argv[3],"-o") != 0))
+                        printeo(dirMem, instruccion, lineaParseada);
                 }
             }  
             else if(lineaParseada[4] != 0 || lineaParseada[7] != 0){ //linea comentario
@@ -195,7 +199,6 @@ int getMnemonico(char* cadena){
     }
     return -1; //-1  no encontro el mnemonico
 }
-
 
 int checkNumeric(char* cadena){ //se fija si es un numero valido
     int lenCadena = strlen(cadena), i=0;
@@ -340,7 +343,7 @@ void removeExtremos(char* cadena, char* out){ //remueve el primer y ultimo char 
     out [largoCadena-2] ='\0'; //marco el fin de la cadena
 }
 
-void addCorchetes(char* cadena, char* out){ //añade corchetes al string
+/*void addCorchetes(char* cadena, char* out){ //añade corchetes al string
     int i =1;
     out[0] = '[';
     while (cadena[i-1]){
@@ -349,17 +352,21 @@ void addCorchetes(char* cadena, char* out){ //añade corchetes al string
     }
     out[i]=']';
     out[i+1]='\0';
-}
+}*/ //codigo fantasma pepe
 
 int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
-    const char* BASES = "**$*****@*#*****%";  ;
-    int base = 10;
-    char *bp = strchr(BASES, *s);
-    if (bp != NULL){
-        base = bp - BASES;
-        ++s;
+    if (s[0]=='\'')
+        return s[1];
+    else{
+        const char* BASES = "**$*****@*#*****%";  ;
+        int base = 10;
+        char *bp = strchr(BASES, *s);
+        if (bp != NULL){
+            base = bp - BASES;
+            ++s;
+        }
+        return strtol(s, out, base);
     }
-    return strtol(s, out, base);
 }
 
 int operandoRegistro(char *operandoEnString){
@@ -437,6 +444,7 @@ int operandoIndirecto(char* operandoEnString){
         offset = anyToInt(offsetAux,&cono);
         if (cadenaAux[largoRegistroAux] == '-')
             offset *= -1;
+        checkTruncado(offset,8);
         resultado=offset<<4|resultado; //puede ser que haya que hacer un corrimiento
         resultado<<20;
         resultado>>20;
@@ -590,7 +598,12 @@ void checkTruncado(int operando, int bits){
             printf("\n\n");
         }
     if (bits == 12)
-                if ((operando & 0xFFFFF000) != 0  && (operando & 0xFFFFF000)!=0XFFFFF000){
+        if ((operando & 0xFFFFF000) != 0  && (operando & 0xFFFFF000)!=0XFFFFF000){
+            printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.", operando, bits);
+            printf("\n\n");
+        }
+    if (bits == 8)
+        if ((operando & 0xFFFFFF00) != 0  && (operando & 0xFFFFFF00)!=0xFFFFFF00){
             printf("Truncado de Operando: \n%d no puede ser almacenado en el espacio de %d bits. \nSe trunca la parte alta del valor.", operando, bits);
             printf("\n\n");
         }
