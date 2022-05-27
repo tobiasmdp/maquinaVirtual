@@ -461,6 +461,8 @@ int getOperando(int tipoOperando, char operandoEnString[]){
         resultado = operandoRegistro(operandoEnString);
     }
     else if (tipoOperando == TODirecto){
+        if (operandoEnString[0] == '[')// cuando son numericos no se le saca el corchete antes, por eso se hace esta verificacion de corchetes
+            removeExtremos(operandoEnString,operandoEnString);
         if (operandoEnString[0] == '\'') //los que llevan comillas se asumen q son de 1 solo caracter
             resultado = (int)operandoEnString[1];
         else
