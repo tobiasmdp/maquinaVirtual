@@ -24,14 +24,14 @@ typedef struct simbolo
     int posCS; /*nunca puede ser 0 porque siempre va a estar despues de las instrucciones, si es -1 es que algo anda mal*/
 } simbolo; /*para mas comodidad se usan todos con mayusculas*/
 
-void setTablaCteString(int tablaString[]);
+void setTablaCteString();
 int getMnemonico(char* cadena);
 int checkNumeric(char* cadena);
 int checkInmediato(char* cadena);
 int checkDirecto(char* cadena);
 int checkRegistro(char* cadena);
 int getTipoOperando(char* cadena);
-void removeCorchetes(char* cadena, char* out);
+void removeExtremos(char* cadena, char* out);
 int anyToInt(char *s, char **out);
 int operandoRegistro(char *operandoEnString);
 int getOperando(int tipoOperando, char* operandoEnString);
@@ -77,7 +77,7 @@ int main(int argc, char const *argv[]){
     strcpy(nombreArchB, argv[2]); // arrancan desde el 1 los argumentos, 0 es el ejecutable
 
     getTablaSimbolos(nombreArchT); //genera tabla de rotulos paralela
-    setTablaCteString(tablaString);// crear vector de las constantes en binario y finalizar el valor del cs
+    setTablaCteString();// crear vector de las constantes en binario y finalizar el valor del cs
     
     if ((archT = fopen(nombreArchT, "r")) != NULL){
 
@@ -163,7 +163,7 @@ int main(int argc, char const *argv[]){
     return 0;
 }
 
-void setTablaCteString(int tablaString[]){
+void setTablaCteString(){
 int cont=0;
     for (int i=0;i<cantSimbolos;i++){
         if (tablaSimbolos[i].tipo==2){
@@ -213,7 +213,7 @@ int checkNumeric(char* cadena){ //se fija si es un numero valido
 } 
 
 int checkStringAlfa(char* cadena){ //mira si el string es solo de caracteres alfabeticos
-    int i=0;
+    int i=0; //pepe
     while (cadena[i]){
         if (!isalpha(cadena[i]))
             return 0;
@@ -263,7 +263,7 @@ int checkDirecto(char* cadena){ //tienen corchetes y contienen un inmediato o ct
     char cadenaAux[10];
     int resultado=0;
     if (cadena[0] == '['){ //miro el corchete
-        removeCorchetes(cadena, cadenaAux);
+        removeExtremos(cadena, cadenaAux);
         resultado = checkInmediato(cadenaAux); //miro si es inmediato
         if (resultado == 2) //si resultado es 2, es porque era una constante 
             strcpy(cadena,cadenaAux); //modifico el vector de la linea parseada
@@ -295,7 +295,7 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
     int resultado = 0, largoCadenaAux, largoRegistroAux = 0;
     char cadenaAux[20], registroAux[4], offsetAux[largoSimbolo];
     if (cadena[0] == '[') { // miro el corchete
-        removeCorchetes(cadena, cadenaAux); 
+        removeExtremos(cadena, cadenaAux); 
         largoCadenaAux = strlen(cadenaAux);
         if (largoCadenaAux == 2 || largoCadenaAux == 3){//registro largo 2  || registro largo 3
             if (checkRegistro(cadenaAux)){
@@ -334,7 +334,7 @@ int getTipoOperando(char* cadena){
     return -1; //operando invalido
 }
 
-void removeCorchetes(char* cadena, char* out){ //remueve el primer y ultimo char de la cadena
+void removeExtremos(char* cadena, char* out){ //remueve el primer y ultimo char de la cadena
     int largoCadena = strlen(cadena);
     memcpy(out,cadena+1, largoCadena-2); //preferible copiar la data a corromper cadena
     out [largoCadena-2] ='\0'; //marco el fin de la cadena
@@ -502,8 +502,10 @@ void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del dupli
                     printf("\n\n"); 
                 }
                 strcpy(aux,lineaParseada[8]);
-                if (aux[0]=='"' && aux[strlen(aux)-1]=='"')// define si string o numerico
+                if (aux[0]=='"' && aux[strlen(aux)-1]=='"'){// define si string o numerico
                     tablaSimbolos[cantSimbolos].tipo=2;
+                    removeExtremos(lineaParseada[8],lineaParseada[8]);
+                }
                 else
                     tablaSimbolos[cantSimbolos].tipo=1;
                 tablaSimbolos[cantSimbolos].label = (char*) malloc(100);

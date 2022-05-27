@@ -9,7 +9,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "args": ["test1.asm","test1.mv2"],
+                "args": ["test.asm","test1.mv2"],
                 "stopAtEntry": true,
                 "cwd": "${fileDirname}",
                 "environment": [],
