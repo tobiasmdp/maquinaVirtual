@@ -42,7 +42,7 @@ int checkSimbolo(char* simbolo);
 int transformSimbolo(char* cadena);
 void checkTruncado(int operando, int bits);
 void printeo(int dirMem, int instruccion, char* lineaParseada[]);
-void getHeader(int cantCeldas);
+void getHeader();
 int updateSegmento(char* segmento, char* tamanio);
 void upcaseString (char str[],char final[]);
 int checkFormatoSimbolo(char* cadena);
@@ -152,7 +152,7 @@ int main(int argc, char const *argv[]){
                 
             freeline(lineaParseada);
         }
-        getHeader(dirMem); //dirMem+1 = cantCeldas  
+        getHeader();
         fclose(archT);
 
         if(exito) //si algo sale mal, la var global exito se torna 0 (false)
@@ -631,12 +631,12 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
     printf("\n\n");
 }
 
-void getHeader(int cantCeldas){
+void getHeader(){
     header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'2');
     header[1]=DS;
     header[2]=SS;
     header[3]=ES;
-    header[4]=cantCeldas;
+    header[4]=CS;
     header[5]=((int)'V'<<24 | (int)'.'<<16 | (int)'2'<<8 | (int)'2');
 }
 
