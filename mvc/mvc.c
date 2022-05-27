@@ -94,7 +94,8 @@ int main(int argc, char const *argv[]){
                 mnemonico = getMnemonico(lineaParseada[1]);
                 if (mnemonico < 0){ //validacion error mnemonico
                     instruccion = 0xFFFFFFFF;
-                    printf("Error de Sintaxis");
+                    printf("Error de Sintaxis, mnemonico inexistente");
+                    printf("\n\n");
                     exito = 0;
                 }
                 else if (mnemonico >= 0x0 && mnemonico <= 0xF){ //2 OP
@@ -131,8 +132,8 @@ int main(int argc, char const *argv[]){
                 dirMem++;
             }
             else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
-                long int aux1;
-                if ( strcmp("2147483647",lineaParseada[6])<0 || strcmp("-2147483647",lineaParseada[6])<0){  //ver bien el tema de los signos
+                long long int aux  = atoll(lineaParseada[6]);
+                if ( 2147483647 < aux || -2147483647 > aux){
                     printf("Valores inapropiado en directiva");
                     printf("\n\n");
                     instruccion = 0xFFFFFFFF;
@@ -622,7 +623,7 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
     }
     else if (lineaParseada[5]) //tiene segmento
-        printf("\\%s %s", lineaParseada[5], lineaParseada[6]);
+        printf("\\\\ %s %s", lineaParseada[5], lineaParseada[6]);
     else if (lineaParseada[7]) //constante implicita
         printf("%s EQU %s", lineaParseada[7], lineaParseada[8]);
     else if (lineaParseada[4]) //comentario
