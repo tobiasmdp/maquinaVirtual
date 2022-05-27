@@ -2,8 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-char* intToString(int numero);
-
 int main(int argc, char const *argv[])
 {   
     char str[200];

@@ -103,12 +103,7 @@ int main(int argc, char const *argv[]){
                     instruccion |= tipoOperando1<<26;
                     instruccion |= tipoOperando2<<24;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
-                    operando1<<8;
-                    operando1>>8;
-                    printf("offset:%d simbolo:%d, Hexa:%03X\n",(operando1>>4),operando1, operando1&0xFFF);
                     operando2 = getOperando(tipoOperando2, lineaParseada[3]);
-                    operando2<<20;
-                    operando2>>20;
                     checkTruncado(operando1,12);
                     checkTruncado(operando2,12);
                     instruccion |= (operando1<<12)&0x00FFF000;
@@ -370,12 +365,14 @@ int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
 int operandoRegistro(char *operandoEnString){
     int largoCadena = strlen(operandoEnString);
     // Registros especificos
-    if (stricmp(operandoEnString, "DS") == 0)
-        return (0);
+    if (stricmp(operandoEnString, "HP") == 0)
+        return (4);
     if (stricmp(operandoEnString, "IP") == 0)
         return (5);
-    if (stricmp(operandoEnString, "CC") == 0)
-        return (8);
+    if (stricmp(operandoEnString, "SP") == 0)
+        return (6);
+    if (stricmp(operandoEnString, "BP") == 0)
+        return (7);
     if (stricmp(operandoEnString, "AC") == 0)
         return (9);
     // Registros de proposito general
@@ -399,13 +396,36 @@ int operandoIndirecto(char* operandoEnString){
     simbolo rotuloAux; 
     strcpy(cadenaAux, operandoEnString);
     largoCadenaAux = strlen(cadenaAux);
-    if (largoCadenaAux == 2)
-        resultado = toupper(cadenaAux[0])-55; //registro largo 2
-    else if (largoCadenaAux == 3)
-        resultado = toupper(cadenaAux[1])-55; //registro largo 3
+    if (largoCadenaAux == 2){// if contien registro largo 2
+        if (stricmp(operandoEnString, "HP") == 0)
+            resultado = (4);
+        else if (stricmp(operandoEnString, "IP") == 0)
+            resultado = (5);
+        else if (stricmp(operandoEnString, "SP") == 0)
+            resultado = (6);
+        else if (stricmp(operandoEnString, "BP") == 0)
+            resultado = (7);
+        else if (stricmp(operandoEnString, "AC") == 0)
+            resultado = (9);
+        else
+            resultado = toupper(cadenaAux[0])-55; 
+    }
+    else if (largoCadenaAux == 3)//contiene registro largo 3
+        resultado = toupper(cadenaAux[1])-55; 
     else{
         if (cadenaAux[2] == '+' || cadenaAux[2] == '-'){
-            resultado = toupper(cadenaAux[0])-55; 
+            if (toupper(cadenaAux[0]) == 'H' && toupper(cadenaAux[1]) == 'P')
+                resultado = (4);
+            else if (toupper(cadenaAux[0]) == 'I' && toupper(cadenaAux[1]) == 'P')
+                resultado = (5);
+            else if (toupper(cadenaAux[0]) == 'S' && toupper(cadenaAux[1]) == 'P')
+                resultado = (6);
+            else if (toupper(cadenaAux[0]) == 'B' && toupper(cadenaAux[1]) == 'P')
+                resultado = (7);
+            else if (toupper(cadenaAux[0]) == 'A' && toupper(cadenaAux[1]) == 'C')
+                resultado = (9);
+            else
+                resultado = toupper(cadenaAux[0])-55; 
             largoRegistroAux = 2;
         }
         else{   
@@ -456,7 +476,7 @@ void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del dupli
     if ((archT = fopen(nombreArchT, "r")) != NULL){
         while (fgets(linea, largoLinea, archT) != NULL){ 
             lineaParseada = parseline(linea);
-            if (lineaParseada[0] != 0){
+            if (lineaParseada[0] != 0){ //si es rotulo
                 if (checkSimbolo(lineaParseada[0])){
                     instruccion = 0xFFFFFFFF;
                     exito = 0;
@@ -474,7 +494,7 @@ void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del dupli
                 cantSimbolos++;
                 tempCS++;
             } 
-            else if (lineaParseada[7] && lineaParseada[8]){
+            else if (lineaParseada[7] && lineaParseada[8]){ //si es constante
                 if(checkSimbolo(lineaParseada[7])){
                     instruccion = 0xFFFFFFFF;
                     exito = 0;
@@ -494,7 +514,7 @@ void getTablaSimbolos(char* nombreArchT){ //agregar por aca el exito 0 del dupli
                 cantSimbolos++;
                 cantString+=strlen(lineaParseada[8])+1;
             }
-            else 
+            else if (lineaParseada[1]) //si es mnemonico
                 tempCS++;
         }
         fclose(archT);
@@ -596,7 +616,7 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
 }
 
 void getHeader(int cantCeldas){
-    header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'1');
+    header[0]=((int)'M'<<24 | (int)'V'<<16 | (int)'-'<<8 | (int)'2');
     header[1]=DS;
     header[2]=SS;
     header[3]=ES;
