@@ -102,7 +102,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("cls");
-    LeeDiscos();
+    //LeeDiscos();
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
@@ -151,7 +151,7 @@ void LeeArch(int memoria[],int registro[]){
         fread(header+i,sizeof(int),1,arch);
     }
     
-   if((header[0]>>24&0x0FF)!='M' || (header[0]>>16&0x0FF)!='V' || (header[0]>>8&0x0FF)!='-' || (header[0]&0x0FF)!='1' || (header[5]>>24&0x0FF)!='V' || (header[5]>>16&0x0FF)!='.' || (header[5]>>8&0x0FF)!='2' || (header[5]&0x0FF)!='2') {
+   if((header[0]>>24&0x0FF)!='M' || (header[0]>>16&0x0FF)!='V' || (header[0]>>8&0x0FF)!='-' || (header[0]&0x0FF)!='2' || (header[5]>>24&0x0FF)!='V' || (header[5]>>16&0x0FF)!='.' || (header[5]>>8&0x0FF)!='2' || (header[5]&0x0FF)!='2') {
         printf("El formato del archivo .mv2 no pudo ser validado");
         exit(EXIT_FAILURE);
     } 
@@ -242,7 +242,7 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
             if (TipoOp==2)                                                  // Directo
                 *A=&memoria[low(registro[DS])+operando];
             else
-                if(TipoOp=1){                                               // Registro
+                if(TipoOp==1){                                               // Registro
                     *A=&registro[operando & 0x0F];
                     if (TipoReg==1)                                               // Registro del 4TO byte
                         *mascaraA=LOW_MASK;
@@ -252,12 +252,12 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                         *mascaraA= REG_MASK;           
                 }                                                                 // Registro de los 4 bytes sale directo
                 else{                                                       // Indirecto
-                    numreg=registro[operando & 0x0F];
+                    numreg=operando & 0x0F;
                     offset=(operando>>4) & 0x0FF;
                     offset<<=24;
                     offset>>=24;
                     inicioReg=low(registro[high(registro[numreg])]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
-                    finReg=memoria[dirmemoria(registro[numreg],registro,memoria)];// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
+                    finReg=inicioReg+high(registro[high(registro[numreg])]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
                     direccion=inicioReg+low(registro[numreg])+offset;
                     if(direccion>inicioReg && direccion<finReg)
                         *A=&memoria[direccion];
@@ -393,7 +393,7 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 /*-----------------------------------------------------Funciones de 1 operando:------------------------------------------------*/ 
 
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
-    int indice,contc,cont=0,longitud,i,aux;
+    int indice,contc,cont=0,longitud,i=0,aux;
     char caracter[255];
     indice=dirmemoria(registro[EDX],registro,memoria);
     int numCil, numCab,numSec,CantSectores,numDisco;
@@ -450,11 +450,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         if (Sys == 15){ //breakpoint - flags
             if (checkFlag("-c"))
                 system("cls");
-            if (checkFlag("-d")){
+            if (checkFlag("-d"))
                 disassembler(registro,memoria);
             if (checkFlag("-b"))
                 breakpoint(registro,memoria);
-            }
         }
         else
             if (Sys == 3){ //String read
@@ -466,19 +465,33 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                     memoria[indice+i]=caracter[i];
                     i++;
                 }
-                memoria[indice+registro[ECX]&REG_MASK]='\0';
+                memoria[indice+i]='\0';
             }
             else if (Sys == 4){ //String write
+                
                 if ((registro[EAX]&0x0800)>>11==0)
-                    printf("[%04d]: ",(indice+cont));
-                for (int i = 0; i < registro[ECX]&REG_MASK; i++){
-                    printf("%c ",(memoria[indice+cont]&0x0FF));
+                    printf("[%04d]: ",(indice+i));
+                while (memoria[indice+i]!=0){
+                    printf("%c",memoria[indice+i]);
+                    i++;
                 }
                 if ((registro[EAX]&0x0100)>>8==0)
                     printf("\n");
+                
+               /* //2da Variante de metodo
+                while (memoria[indice+i]!=0){
+                    if ((registro[EAX]&0x0800)>>11==0)
+                         printf("[%04d]: ",(indice+i));
+                    printf("%c",memoria[indice+i]);
+                    printf("\n");
+                    i++;
+                }
+                if ((registro[EAX]&0x0100)>>8==0)
+                    printf("\n");
+                */
             }
             else if (Sys == 7) //clear screen
-                    system("cls");    
+                    system("cls");    /*
             else if (Sys==13){                          //Trabajos con disco
                 aux=get_value(&registro[EAX],HIGH_MASK);
                 indice=dirmemoria(registro[EBX],registro,memoria);
@@ -501,8 +514,8 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 else if(aux==8){                            //Obtener los parametros del disco
 
                 }
-
-            }
+*/
+    
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -636,7 +649,7 @@ int high(int a){
     return (a>>16) & REG_MASK;
 }
 
-int dirmemoria(int inst, int registro[],int memoria[]){
+int dirmemoria(int inst, int registro[],int memoria[]){//le paso una indireccion
     int resultado,codseg=high(inst);
 
     if(codseg==0){
@@ -692,6 +705,7 @@ void breakpoint(int registro[], int memoria[]){
     int aux,aux1;
     
     printf("[%04d] cmd: ",dirmemoria(registro[IP],registro,memoria)-1);
+    fflush(stdin);
     fgets(sig,10,stdin);
     while (sig[0]!='r' && sig[0]!='p'){
         dividenum(sig,&aux,&aux1);
@@ -701,6 +715,7 @@ void breakpoint(int registro[], int memoria[]){
           for (int i=aux;i<=aux1;i++)
             printf("[%04d] %08X %4d \n",i,memoria[i],memoria[i]);
         printf("[%04d] cmd: ",dirmemoria(registro[IP],registro,memoria)-1);
+        fflush(stdin);
         fgets(sig,10,stdin);
     }
     if (sig[0]=='p'){
@@ -839,7 +854,7 @@ void CreaDisco(int num)
     fwrite(&aux,211,1,arch);
     fclose(arch);
 }
-
+/*
 void LeeDiscos(){
     int i=0,j=0;
     int CantDiscos;
@@ -855,4 +870,6 @@ void LeeDiscos(){
         i++;
         j++;
     }
+
 }
+*/
