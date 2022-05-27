@@ -318,7 +318,7 @@ int checkIndirecto(char* cadena){ //tiene corchetes y un registro + opcional un 
                 offsetAux[largoCadenaAux-largoRegistroAux-1] = '\0';
                 if (checkInmediato(offsetAux)){
                     resultado=1;
-                    strcpy(cadenaAux+largoRegistroAux+1, offsetAux);
+                    //strcpy(cadenaAux+largoRegistroAux+1, offsetAux);
                     strcpy(cadena, cadenaAux);
                 }
             }

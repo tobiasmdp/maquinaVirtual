@@ -7,7 +7,6 @@ char* intToString(int numero);
 int main(int argc, char const *argv[])
 {   
     char str[200];
-    strcpy(str,intToString(13546));
 
     FILE* archB;
     int instruccion;
