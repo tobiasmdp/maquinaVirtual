@@ -26,9 +26,18 @@
 #define REG_MASK 0xFFFF
 #define HIGH_MASK 0xFF00
 #define LOW_MASK 0x00FF
-
+#define MinUDisco 512
 /*----------------------------------------------Prototipos----------------------------------------------------------------*/
 
+typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
+typedef struct {
+    char* estado[30];
+    char* nombreArch[30];
+    int cantCil;
+    int cantCab;
+    int TamSector;
+    }Tdisco;
+    
 void LeeArch(int[],int[]);
 void ExtraerUnOperando(int ,int**,int*, int[] ,int [],int *);
 void ExtraerDosOperandos(int ,int** ,int** ,int*,int *, int[] ,int [],int *,int *);
@@ -78,21 +87,22 @@ int low(int);
 int high(int);
 int dirmemoria(int , int [], int[]);
 int dirinversa(int *, int [],int []);
-typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 
+void LeeDiscos();
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
 
 int p=0; /*si aparece p en el sys se cambia*/
 int pri=0;
+Tdisco *discos;
 int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB;
     int memoria[TM],registro[TR]={0};
     T_fun* ArrayFunc[]={MOV,ADD,SUB,SWAP,MUL,DIV,CMP,SHL,SHR,AND,OR,XOR,SLEN,SMOV,SCMP,0,SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,LDL,LDH,RND,NOT,PUSH,POP,CALL,0,RET,STOP}; //Arreglo de punteros a funciones, cuando las tengamos las metemos ahi  
-    
+
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("cls");
-    
+    LeeDiscos();
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
@@ -383,11 +393,13 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 /*-----------------------------------------------------Funciones de 1 operando:------------------------------------------------*/ 
 
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
-    int indice,contc,cont=0,longitud,i;
+    int indice,contc,cont=0,longitud,i,aux;
     char caracter[255];
     indice=dirmemoria(registro[EDX],registro,memoria);
-
-    if ((*A & mascaraA) == 1){// lectura // revisar contadores
+    int numCil, numCab,numSec,CantSectores,numDisco;
+    FILE *arch;
+    int Sys=(*A & mascaraA);
+    if (Sys == 1){// lectura 
         while (cont<(registro[ECX]&REG_MASK)){
             if (( registro[EAX]&0x0800)>>11==0)
                 printf("[%04d]: ",(indice+cont));
@@ -413,7 +425,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
     }
     else 
-      if ((*A & mascaraA) == 2){ // escritura
+      if (Sys == 2){ // escritura
         cont=0;
         while (cont<(registro[ECX]&REG_MASK)){
             if ((registro[EAX]&0x0800)>>11==0)
@@ -435,7 +447,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
       }
       else
-        if ((*A & mascaraA) == 15){ //breakpoint - flags
+        if (Sys == 15){ //breakpoint - flags
             if (checkFlag("-c"))
                 system("cls");
             if (checkFlag("-d")){
@@ -445,7 +457,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             }
         }
         else
-            if ((*A & mascaraA) == 3){ //String read
+            if (Sys == 3){ //String read
                 if ((registro[EAX]&0x0800)>>11==0)
                     printf("[%04d]: ",(indice+cont));
                 scanf("%s",caracter);
@@ -456,7 +468,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
                 memoria[indice+registro[ECX]&REG_MASK]='\0';
             }
-            else if ((*A & mascaraA) == 4){ //String write
+            else if (Sys == 4){ //String write
                 if ((registro[EAX]&0x0800)>>11==0)
                     printf("[%04d]: ",(indice+cont));
                 for (int i = 0; i < registro[ECX]&REG_MASK; i++){
@@ -465,9 +477,32 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 if ((registro[EAX]&0x0100)>>8==0)
                     printf("\n");
             }
-            else
-                if ((*A & mascaraA) == 7) //clear screen
+            else if (Sys == 7) //clear screen
                     system("cls");    
+            else if (Sys==13){                          //Trabajos con disco
+                aux=get_value(&registro[EAX],HIGH_MASK);
+                indice=dirmemoria(registro[EBX],registro,memoria);
+                CantSectores=get_value(&registro[EAX],LOW_MASK);
+                numCil=get_value(&registro[ECX],HIGH_MASK);
+                numCab=get_value(&registro[ECX],LOW_MASK);
+                numSec=get_value(&registro[EDX],HIGH_MASK);
+                numDisco=get_value(&registro[EDX],LOW_MASK);
+                arch=fopen(discos[numDisco].nombreArch,"rb");
+                if(aux==0){                                 //Consulto estado
+                    printf("El estado del disco fue %s",discos[numDisco].estado);
+                }
+                else if(aux==2){                            //Leo del disco
+                    fseek(discos[numDisco],MinUDisco+numCil*numCab*numSec)
+                    fread(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
+                }
+                else if(aux==3){                            //Escribir en el disco
+                    fwrite(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
+                }
+                else if(aux==8){                            //Obtener los parametros del disco
+
+                }
+
+            }
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -769,8 +804,9 @@ void imprimeOperando(int tipoOp, int op){
     }
 }
 
-void CreaDisco()
+void CreaDisco(int num)
 {   FILE* arch;
+    Tdisco discoaux;
     int aux;
     arch=fopen("disco1.vdd","wb+");
     aux=0x56444430;//tipo de archivo
@@ -802,4 +838,21 @@ void CreaDisco()
     aux=0;//relleno
     fwrite(&aux,211,1,arch);
     fclose(arch);
+}
+
+void LeeDiscos(){
+    int i=0,j=0;
+    int CantDiscos;
+    FILE* arch;
+    while(i<_argc && strcmp(_argv[i]+strlen(_argv[i])-4,".vdd")!=0)//Recorro hasta encontrar el primer string
+        i++;
+    CantDiscos=sizeof(_argc)-i;
+    discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
+    while (j<CantDiscos && j<255){
+        arch=fopen(_argv[i],"rb");
+        strcpy(*(discos+j)->estado ,"Exitoso");
+        strcpy(*(discos+j)->nombreArch ,_argv[i]);
+        i++;
+        j++;
+    }
 }
