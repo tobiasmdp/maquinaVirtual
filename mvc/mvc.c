@@ -132,7 +132,7 @@ int main(int argc, char const *argv[]){
             }
             else if (lineaParseada[5] != 0){ //asignacion de segmento de memoria            
                 long int aux1;
-                if (2147483647< anyToInt(lineaParseada[8],&cono) && 2147483647>anyToInt(lineaParseada[8],&cono)){ 
+                if ( strcmp("2147483647",lineaParseada[6])<0 || strcmp("-2147483647",lineaParseada[6])<0){  //ver bien el tema de los signos
                     printf("Valores inapropiado en directiva");
                     printf("\n\n");
                     instruccion = 0xFFFFFFFF;
