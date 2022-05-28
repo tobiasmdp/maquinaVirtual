@@ -86,7 +86,7 @@ void imprimeOperando(int , int);
 int low(int);
 int high(int);
 int dirmemoria(int , int [], int[]);
-int dirinversa(int *, int [],int []);
+int dirinversa(int , int [],int []);
 
 void LeeDiscos();
 /*----------------------------------------------------Comienzo del programa-----------------------------------------------*/
@@ -102,7 +102,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 
     if (checkFlag("-c"))  /*limpio la pantalla al inicio si -c esta como argumento*/
         system("cls");
-    //LeeDiscos();
+    LeeDiscos();
     LeeArch(memoria,registro);
     if (checkFlag("-d"))
         disassembler(registro,memoria);
@@ -159,7 +159,7 @@ void LeeArch(int memoria[],int registro[]){
         printf("El archivo fue validado\n");
     }
     if(header[1]+header[2]+header[3]+header[4]>TM){
-        printf("Los valores asignados a los segmentos exceden el tamaño de la memoria.");
+        printf("Los valores asignados a los segmentos exceden el tamanio de la memoria.");
         exit(EXIT_FAILURE);
     }
     i=0;
@@ -516,7 +516,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 */
             }
             else if (Sys == 7) //clear screen
-                    system("cls");    /*
+                    system("cls");    
             else if (Sys==13){                          //Trabajos con disco
                 aux=get_value(&registro[EAX],HIGH_MASK);
                 indice=dirmemoria(registro[EBX],registro,memoria);
@@ -527,7 +527,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 numDisco=get_value(&registro[EDX],LOW_MASK);
                 arch=fopen(discos[numDisco].nombreArch,"rb");
                 if(aux==0){                                 //Consulto estado
-                    printf("El estado del disco fue %s",discos[numDisco].estado);
+                    discos[numDisco].estado;
                 }
                 else if(aux==2){                            //Leo del disco
                     fseek(discos[numDisco],MinUDisco+numCil*numCab*numSec)
@@ -538,9 +538,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
                 else if(aux==8){                            //Obtener los parametros del disco
 
-                }
-*/
-    
+                } 
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -604,16 +602,16 @@ void NOT(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 void PUSH(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    if(low(registro[SS])==low(registro[SP])){
-        printf("Stack overflow. El programa finalizo incorrectamente");
+    if(low(registro[SS])==dirmemoria(registro[SP],registro,memoria)){
+        printf("Stack overflow. -> Linea: %d", low(registro[IP]));
         exit(EXIT_FAILURE);
     }
     registro[SP]--;
     set_value (memoria+dirmemoria(registro[SP],registro,memoria),auxA,mascaraA);
 }
 void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if(low(registro[SS])+high(registro[SS])==low(registro[SP])){
-        printf("Stack underoverflow. El programa finalizo incorrectamente");
+    if(low(registro[SS])+high(registro[SS])==dirmemoria(registro[SP],registro,memoria)){
+        printf("Stack underoverflow.-> Linea: %d", low(registro[IP]));
         exit(EXIT_FAILURE);
     }
     int auxA=get_value(memoria+dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK);
@@ -622,14 +620,14 @@ void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    PUSH(memoria+dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);//Quiza sea mejor que dir memoria me devuelva un puntero? Curioso 
+    PUSH(memoria+dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);
     JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
 /*Funciones de 0 operandos:*/
 void RET(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    if(low(registro[SS])+high(registro[SS])==low(registro[SP])){
-        printf("Stack underflow. El programa finalizo incorrectamente");
+    if(low(registro[SS])+high(registro[SS])==dirmemoria(registro[SP],registro,memoria)){
+        printf("Stack underflow. -> Linea: %d", low(registro[IP]));
         exit(EXIT_FAILURE);
     }
     JMP(memoria+dirmemoria(registro[SP],registro,memoria),EXTENDED_MASK,B,C,D,mascaraB,memoria,registro);
@@ -637,7 +635,7 @@ void RET(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 
 void STOP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
-    registro[IP]=(high(registro[CS]) + low(registro[CS])+1);
+    registro[IP]=dirinversa(high(registro[DS])+high(registro[SS])+high(registro[ES])+high(registro[CS]),registro,memoria);
 }
 
 /*Otras funciones utiles*/
@@ -700,14 +698,14 @@ int dirmemoria(int inst, int registro[],int memoria[]){//le paso una indireccion
         resultado=low(inst)+low(registro[CS]);
     }
     else{
-        printf("Los valores asignados a los segmentos exceden el tamaño de la memoria.");
+        printf("Segmentation fault -> Linea: %d", low(registro[IP]));
         exit(EXIT_FAILURE);
     }
     return resultado;//Direccion absoluta del arreglo memoria
 }
-/*
-int dirinversa(int *dir, int registro[],int memoria[]){
-    int aux=(int)(dir-memoria);
+
+int dirinversa(int dir, int registro[],int memoria[]){
+    int aux=dir;
     int resultado;
     if(aux>=low(registro[DS]) && aux<= (high(registro[DS]) + low(registro[DS]))){//Si esta dentro del DS
         resultado=DS;
@@ -728,10 +726,10 @@ int dirinversa(int *dir, int registro[],int memoria[]){
         resultado=CS;
         resultado<<=16;
         resultado|= aux-low(registro[CS]);
-    
+    }
     return resultado;
 }
-*/
+
 int checkFlag(char bandera []){ 
     int i=0;
     while (i<_argc && strcmp(_argv[i],bandera)!=0)
@@ -890,17 +888,17 @@ void CreaDisco(int num)
     aux=512;//tamaño de un sector
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0;//relleno
-    fwrite(&aux,211,1,arch);
+    fwrite(&aux,gdfgs,1,arch);
     fclose(arch);
 }
-/*
+
 void LeeDiscos(){
     int i=0,j=0;
     int CantDiscos;
     FILE* arch;
-    while(i<_argc && strcmp(_argv[i]+strlen(_argv[i])-4,".vdd")!=0)//Recorro hasta encontrar el primer string
+    while(i<_argc && strcmp(_argv[i]+strlen(_argv[i])-4,".vdd")!=0)//Recorro hasta encontrar el PRIMER Parametro (y tambien disco) .vdd
         i++;
-    CantDiscos=sizeof(_argc)-i;
+    CantDiscos=_argc-i;
     discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
     while (j<CantDiscos && j<255){
         arch=fopen(_argv[i],"rb");
@@ -911,4 +909,3 @@ void LeeDiscos(){
     }
 
 }
-*/
