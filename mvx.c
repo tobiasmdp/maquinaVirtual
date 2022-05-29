@@ -32,7 +32,7 @@
 
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
 typedef struct Tdisco{
-    char estado[30];
+    int estado;
     char nombreArch[30];
     int cantCil;
     int cantCab;
@@ -138,6 +138,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
         if(pri==1)
              pri++;
     }     
+    free(discos);
     return 0;
 }
 
@@ -214,6 +215,8 @@ void ExtraerUnOperando(int inst,int **A,int *C, int memoria[],int registro[],int
     *mascaraA=EXTENDED_MASK;
     int TipoOp=inst>>22 & 0x03;
     int Operando=inst&0xFFFF;
+    Operando<<=16;
+    Operando>>=16;
     Extractor(TipoOp,Operando,A,C,memoria,registro,mascaraA);
 }
 
@@ -223,10 +226,14 @@ void ExtraerDosOperandos(int inst,int **A,int **B,int *C, int *D, int memoria[],
 
     TipoOp=inst>>26 & 0x03;
     Operando=(inst>>12)&0xFFF;
+    Operando<<=20;
+    Operando>>=20;
     Extractor(TipoOp,Operando,A,C,memoria,registro,mascaraA);
 
     TipoOp=inst>>24 & 0x03;
     Operando=inst&0xFFF;
+    Operando<<=20;
+    Operando>>=20;
     Extractor(TipoOp,Operando,B,D,memoria,registro,mascaraB);
 
 }
@@ -523,84 +530,88 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         numCab=get_value(&registro[ECX],LOW_MASK);
         numSec=get_value(&registro[EDX],HIGH_MASK);
         numDisco=get_value(&registro[EDX],LOW_MASK);
+        
         arch=fopen((discos+numDisco)->nombreArch,"rb");
         if (arch == NULL){
-            set_value(registro+10,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
+            set_value(registro+EAX,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
             printf("%X No existe disco \n",49); 
         }
         else if (numCil>(discos+numDisco)->cantCil){
-            set_value(registro+10,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
-            printf("%X Número inválido de cilindro \n",11);
+            set_value(registro+EAX,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
+            discos[numDisco].estado=11;
         }
         else if (numCab>(discos+numDisco)->cantCab){
-            set_value(registro+10,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
-            printf("%X Número inválido de cabeza \n",12);
+            set_value(registro+EAX,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
+            discos[numDisco].estado=12;
         } 
         else if (numSec>(discos+numDisco)->cantSector){
-            set_value(registro+10,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
-            printf("%X Número inválido de sector \n",13);
+            set_value(registro+EAX,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
+            discos[numDisco].estado=13;
         } 
         else {
             long int posEnDisco=MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec);
             long int tamanioDisco = HeaderDisco+(MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector); 
             if(aux==0){                                 //Consulto estado
-                printf("estado del disco %s \n",(discos+numDisco)->estado);
-                set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                printf("ultimo estado del disco %X \n",(discos+numDisco)->estado);
+                set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exito
             }
             else if(aux==2){                            //Leo del disco            
-                //analisis de lectura
                 if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
                     fseek(arch,0,SEEK_END);
                     long int tamanioArchivo=ftell(arch);
-                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
-                    if(tamanioArchivo<tamanioDisco){
+                    if(tamanioArchivo<tamanioDisco){ //agrego los 0
                         fseek(arch,0,SEEK_END);
-                        long int tamanioNoqui=tamanioDisco-tamanioArchivo;
-                        long int arregloNoqui[tamanioNoqui]={0,0};
-                        
+                        fwrite(0,sizeof(int),tamanioDisco-tamanioArchivo,arch);                        
                     }
+                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
                     if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
                         fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
                     else{ //supero el tamaño del disco 
                         fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
-                        set_value(registro+10,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
+                        set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
                     }
-                    set_value(registro+10,0,HIGH_MASK);
-                    printf("%X Operacion exitosa",0);
+                    set_value(registro+EAX,0,HIGH_MASK);
+                    discos[numDisco].estado=0;
                 }
                 else{ //no tengo la cantidad de memoria contigua necesaria
-                  set_value(registro+10,4,HIGH_MASK);
-                  printf("%X Error de lectura \n",4);
+                    set_value(registro+EAX,4,HIGH_MASK);
+                    discos[numDisco].estado=4;
                 }
             }
             else if(aux==3){                            //Escribir en el disco
-                fseek(arch,posEnDisco,SEEK_SET);
-                fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);    
-                if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){
-                    set_value(registro+10,255,HIGH_MASK);
-                    printf("%X Falla en la operacion \n",255);
+                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){
+                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4){
+                        fseek(arch,posEnDisco,SEEK_SET);
+                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
+                        set_value(registro+EAX,0,HIGH_MASK);
+                        discos[numDisco].estado=0;
+                    }
+                    else{
+                        set_value(registro+EAX,255,HIGH_MASK);
+                        discos[numDisco].estado=255;
+                    }
                 }
-                if((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>=(MinUDisco*CantSectores)/4)  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
-                    set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
                 else{
-                  set_value(registro+10,204,HIGH_MASK);
-                  printf("%X Falla de Escritura \n",204);
+                    set_value(registro+EAX,204,HIGH_MASK);
+                    discos[numDisco].estado=204;
                 }
             }
             else if(aux==8){//Obtener los parametros del disco
-                set_value(registro+12,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
-                printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,HIGH_MASK),numDisco);
-                set_value(registro+12,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
-                printf("%d cantidad de cabezas en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
-                set_value(registro+13,(discos+numDisco)->cantSector,HIGH_MASK); //se carga en DH
-                printf("%d cantidad de sector en el disco %d \n",get_value(registro+13,HIGH_MASK),numDisco);
-                set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                set_value(registro+ECX,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
+                printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+ECX,HIGH_MASK),numDisco);
+                set_value(registro+ECX,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
+                printf("%d cantidad de cabezas en el disco %d \n",get_value(registro+ECX,LOW_MASK),numDisco);
+                set_value(registro+EDX,(discos+numDisco)->cantSector,HIGH_MASK); //se carga en DH
+                printf("%d cantidad de sector en el disco %d \n",get_value(registro+EDX,HIGH_MASK),numDisco);
+                set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exito
+                discos[numDisco].estado=0;
             } 
             else{ 
-                set_value(registro+10,1,HIGH_MASK);//seteo el AH en funcion invalida
-                printf("%X Funcion invalida \n");
+                set_value(registro+EAX,1,HIGH_MASK);//seteo el AH en funcion invalida
+                discos[numDisco].estado=1;
             }
         }
+        fclose(arch);
     }
 }
 
@@ -713,7 +724,7 @@ void registroCC(int aux, int registro[]){
 
 int get_value(int *a, int mask){
     int result = *a & mask;
-    if((mask&0xFF)==0){
+    if(mask==HIGH_MASK){
         result=result>>8;
     }
     if((mask==HIGH_MASK || mask==LOW_MASK)){
@@ -919,11 +930,11 @@ void imprimeOperando(int tipoOp, int op){
     }
 }
 
-void CreaDisco(int num){   
+void CreaDisco(int i, int j){   
     FILE* arch;
     Tdisco discoaux;
     int aux;
-    arch=fopen("disco1.vdd","wb+");
+    arch=fopen(_argv[i],"wb+");
     aux=0x56444430;//tipo de archivo
     fwrite(&aux,sizeof(aux),1,arch);
     aux=1;//numero de version
@@ -936,11 +947,11 @@ void CreaDisco(int num){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=rand();
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=0x0131F56E;//fecha creacion
+    aux=0x70657065;//fecha creacion
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=10;//tipo
+    aux=1;//tipo
     aux<<=8;
     aux|=128;//cantidad de cilindros
     aux<<=8;
@@ -948,11 +959,13 @@ void CreaDisco(int num){
     aux<<=8;
     aux|=128;//cantidad de sectores
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=512;//tamaño de un sector
+    aux=MinUDisco;//tamaño de un sector
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0;//relleno
-    fwrite(&aux,472,1,arch);
+    fwrite(&aux,sizeof(int),118,arch);
     fclose(arch);
+    discos[j]=discoaux;
+    
 }
 
 void LeeDiscos(){
@@ -963,12 +976,20 @@ void LeeDiscos(){
         i++;
     CantDiscos=_argc-i;
     discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
-    i-=CantDiscos; // para empezar a leer desde el archivo que tiene el primer disco
     while (j<CantDiscos && j<255){
         arch=fopen(_argv[i],"rb");
-        strcpy((discos+j)->estado ,"Exitoso");
+        if (arch==NULL)
+            CreaDisco(i,j);
+        (discos+j)->estado=0;
+        fseek(arch,34,SEEK_SET);
+        fread(&discos[j].cantCil,sizeof(int),1,arch);
+        fseek(arch,35,SEEK_SET);
+        fread(&discos[j].cantCab,sizeof(int),1,arch);
+        fseek(arch,36,SEEK_SET);
+        fread(&discos[j].cantSector,sizeof(int),1,arch);
         strcpy((discos+j)->nombreArch ,_argv[i]);
         i++;
         j++;
+        fclose(arch);
     }
 }
