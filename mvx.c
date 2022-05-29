@@ -30,12 +30,12 @@
 /*----------------------------------------------Prototipos----------------------------------------------------------------*/
 
 typedef void T_fun(int *,int ,int *,int ,int ,int ,int [],int []);//tipo de funcion
-typedef struct {
-    char* estado[30];
-    char* nombreArch[30];
+typedef struct Tdisco{
+    char estado[30];
+    char nombreArch[30];
     int cantCil;
     int cantCab;
-    int TamSector;
+    int cantSector;
     }Tdisco;
     
 void LeeArch(int[],int[]);
@@ -94,6 +94,7 @@ void LeeDiscos();
 int p=0; /*si aparece p en el sys se cambia*/
 int pri=0;
 Tdisco *discos;
+
 int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
     int indicef,inst; //indicef: numero de operador aux: Almacena la instruccion a ejecutar
     int *A,*B,C,D,mascaraA,mascaraB;
@@ -517,7 +518,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             }
             else if (Sys == 7) //clear screen
                     system("cls");    
-            else if (Sys==13){                          //Trabajos con disco
+            else if (Sys==13){//Trabajos con disco
                 aux=get_value(&registro[EAX],HIGH_MASK);
                 indice=dirmemoria(registro[EBX],registro,memoria);
                 CantSectores=get_value(&registro[EAX],LOW_MASK);
@@ -525,20 +526,46 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 numCab=get_value(&registro[ECX],LOW_MASK);
                 numSec=get_value(&registro[EDX],HIGH_MASK);
                 numDisco=get_value(&registro[EDX],LOW_MASK);
-                arch=fopen(discos[numDisco].nombreArch,"rb");
-                if(aux==0){                                 //Consulto estado
-                    discos[numDisco].estado;
+                arch=fopen((discos+numDisco)->nombreArch,"rb");
+                if (arch == NULL){
+                    set_value(registro+10,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
+                    printf("%X No existe disco"); 
+                } else if (numCil>(discos+numDisco)->cantCil){
+                    set_value(registro+10,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
+                    printf("%X Número inválido de cilindro");
+                } else if (numCab>(discos+numDisco)->cantCab){
+                    set_value(registro+10,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
+                    printf("%X Número inválido de cabeza");
+                } else if (numSec>(discos+numDisco)->cantSector){
+                    set_value(registro+10,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
+                    printf("%X Número inválido de sector");
+                } else {
+                    if(aux==0){                                 //Consulto estado
+                        printf("estado del disco %s",(discos+numDisco)->estado);
+                        set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                    }
+                    else if(aux==2){                            //Leo del disco
+                        fseek(arch,MinUDisco+numCil*numCab*numSec,SEEK_SET); //aca creo que iria un +1
+                            
+                        fread(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
+                    }
+                    else if(aux==3){                            //Escribir en el disco
+                        fwrite(memoria[indice],sizeof(int),(MinUDisco*CantSectores)/4,arch);    
+                    }
+                    else if(aux==8){                            //Obtener los parametros del disco
+                        set_value(registro+12,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
+                        printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,HIGH_MASK),numDisco);
+                        set_value(registro+12,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
+                        set_value(registro+13,(discos+numDisco)->cantSector,HIGH_MASK); //se carga en DH
+                        printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+13,HIGH_MASK),numDisco);
+                        set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                    } 
+                    else{ 
+                        set_value(registro+10,1,HIGH_MASK);//seteo el AH en funcion invalida
+                        printf("%X Funcion invalida");
+                    }
                 }
-                else if(aux==2){                            //Leo del disco
-                    fseek(discos[numDisco],MinUDisco+numCil*numCab*numSec)
-                    fread(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
-                }
-                else if(aux==3){                            //Escribir en el disco
-                    fwrite(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
-                }
-                else if(aux==8){                            //Obtener los parametros del disco
-
-                } 
+            }
 }
 
 void JMP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -856,8 +883,8 @@ void imprimeOperando(int tipoOp, int op){
     }
 }
 
-void CreaDisco(int num)
-{   FILE* arch;
+void CreaDisco(int num){   
+    FILE* arch;
     Tdisco discoaux;
     int aux;
     arch=fopen("disco1.vdd","wb+");
@@ -888,7 +915,7 @@ void CreaDisco(int num)
     aux=512;//tamaño de un sector
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0;//relleno
-    fwrite(&aux,gdfgs,1,arch);
+    fwrite(&aux,472,1,arch);
     fclose(arch);
 }
 
@@ -900,12 +927,12 @@ void LeeDiscos(){
         i++;
     CantDiscos=_argc-i;
     discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
+    i-=CantDiscos; // para empezar a leer desde el archivo que tiene el primer disco
     while (j<CantDiscos && j<255){
         arch=fopen(_argv[i],"rb");
-        strcpy(*(discos+j)->estado ,"Exitoso");
-        strcpy(*(discos+j)->nombreArch ,_argv[i]);
+        strcpy((discos+j)->estado ,"Exitoso");
+        strcpy((discos+j)->nombreArch ,_argv[i]);
         i++;
         j++;
     }
-
 }
