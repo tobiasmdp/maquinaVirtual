@@ -541,26 +541,32 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             printf("%X Número inválido de sector \n",13);
         } 
         else {
+            long int posEnDisco=MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec);
             long int tamanioDisco = HeaderDisco+(MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector); 
             if(aux==0){                                 //Consulto estado
                 printf("estado del disco %s \n",(discos+numDisco)->estado);
                 set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
             }
-            else if(aux==2){                            //Leo del disco
-                fseek(arch,MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec),SEEK_SET); //aca creo que iria un +1            
+            else if(aux==2){                            //Leo del disco            
                 //analisis de lectura
                 if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
-                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4){//compruebo que lo que quiero leer entre en el disco
-                        fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
-                        set_value(registro+10,0,HIGH_MASK);
-                        printf("%X Operacion exitosa",0);
+                    fseek(arch,0,SEEK_END);
+                    long int tamanioArchivo=ftell(arch);
+                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
+                    if(tamanioArchivo<tamanioDisco){
+                        fseek(arch,0,SEEK_END);
+                        long int tamanioNoqui=tamanioDisco-tamanioArchivo;
+                        long int arregloNoqui[tamanioNoqui]={0,0};
+                        
                     }
+                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
+                        fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
                     else{ //supero el tamaño del disco 
                         fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
                         set_value(registro+10,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
-                        set_value(registro+10,0,HIGH_MASK);
-                        printf("%X Operacion exitosa",0);
                     }
+                    set_value(registro+10,0,HIGH_MASK);
+                    printf("%X Operacion exitosa",0);
                 }
                 else{ //no tengo la cantidad de memoria contigua necesaria
                   set_value(registro+10,4,HIGH_MASK);
@@ -568,7 +574,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
             }
             else if(aux==3){                            //Escribir en el disco
-                fseek(arch,MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec),SEEK_SET);
+                fseek(arch,posEnDisco,SEEK_SET);
                 fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);    
                 if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){
                     set_value(registro+10,255,HIGH_MASK);
@@ -581,7 +587,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                   printf("%X Falla de Escritura \n",204);
                 }
             }
-            else if(aux==8){                            //Obtener los parametros del disco
+            else if(aux==8){//Obtener los parametros del disco
                 set_value(registro+12,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
                 printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,HIGH_MASK),numDisco);
                 set_value(registro+12,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
