@@ -47,7 +47,7 @@ int updateSegmento(char* segmento, char* tamanio);
 void upcaseString (char str[],char final[]);
 int checkFormatoSimbolo(char* cadena);
 void addCorchetes(char* cadena, char* out);
-long long anyToLong(char *s, char **out);
+void transformNull(char* cadena);
 
 int instruccion, tablaInstrucciones[largoMemoria], header[6], exito=1, CS, DS=1024, SS=1024, ES=1024, tempCS=0, cantSimbolos=0, cantString=0; //exito significa 0 errores
 const char* tablaMnemonicos[3][16] = {{"RET","STOP","","","","","","","","","","","","","",""}, 
@@ -100,6 +100,8 @@ int main(int argc, char const *argv[]){
                 }
                 else if (mnemonico >= 0x0 && mnemonico <= 0xF){ //2 OP
                     instruccion = mnemonico<<28;
+                    transformNull(lineaParseada[2]);
+                    transformNull(lineaParseada[3]);
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     tipoOperando2 = getTipoOperando(lineaParseada[3]);
                     instruccion |= tipoOperando1<<26;
@@ -112,7 +114,8 @@ int main(int argc, char const *argv[]){
                     instruccion |= (operando2)&0x00000FFF;
                 }
                 else if (mnemonico >= 0xF0 && mnemonico <= 0xFF){ //1 OP 
-                    instruccion = mnemonico<<24; 
+                    instruccion = mnemonico<<24;
+                    transformNull(lineaParseada[2]); 
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     instruccion |= tipoOperando1<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
@@ -655,4 +658,13 @@ int updateSegmento(char* segmento, char* tamanio){
     else
         resultado = -1;
     return resultado;
+}
+
+void transformNull(char* cadena){
+    char cadenaNula[] = "null";
+    if (stricmp(cadena, cadenaNula) == 0){
+        cadena[0] = '-';
+        cadena[1] = '1';
+        cadena[2] = '\0';
+    }
 }

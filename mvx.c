@@ -547,12 +547,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             else if(aux==2){                            //Leo del disco
                 fseek(arch,MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec),SEEK_SET); //aca creo que iria un +1            
                 fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
-                if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){
-                    set_value(registro+13,(discos+numDisco)->cantSector-numSec,HIGH_MASK);
-                    set_value(registro+10,0,HIGH_MASK);
-                }
-                else if((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
+                //analisis de lectura
+                if((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
                     set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                    printf("%X Operacion exitosa",0);
                 }
                 else{
                   set_value(registro+10,4,HIGH_MASK);
@@ -567,6 +565,11 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                     printf("%X Falla en la operacion \n",255);
                 }
                 if((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>=(MinUDisco*CantSectores)/4){  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
+                    if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){ // si la lectura supera el tamaño del disco
+                        set_value(registro+13,(discos+numDisco)->cantSector-numSec,HIGH_MASK);// seteo en el CH la cantidad de sectores que toque
+                        set_value(registro+10,0,HIGH_MASK);
+                        printf("%X Operacion exitosa",0);
+                    }
                     set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
                 }
                 else{
