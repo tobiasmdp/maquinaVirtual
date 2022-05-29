@@ -145,7 +145,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
     arch=fopen(_argv[1],"rb");
-    int header[6],i=0,aux;
+    int header[6]={0},i=0,aux;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
     fread(header+i,sizeof(int),1,arch);
@@ -414,11 +414,11 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud,i=0,aux,segmento=high(registro[EDX]);
     char caracter[255];
-    indice=dirmemoria(registro[EDX],registro,memoria);
     int numCil, numCab,numSec,CantSectores,numDisco;
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -448,6 +448,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
     }
     else if (Sys == 2){ // escritura
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                 exit(EXIT_FAILURE);
@@ -496,6 +497,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             memoria[indice+i]='\0';
     }
     else if (Sys == 4){ //String write
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -951,13 +953,13 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=1;//tipo
-    aux<<=8;
-    aux|=128;//cantidad de cilindros
+    aux=128;//cantidad de sectores
     aux<<=8;
     aux|=128;//cantidad de cabezas
     aux<<=8;
-    aux|=128;//cantidad de sectores
+    aux|=128;//cantidad de cilindros
+    aux<<=8;
+    aux|=1;//tipo
     fwrite(&aux,sizeof(aux),1,arch);
     aux=MinUDisco;//tamaño de un sector
     fwrite(&aux,sizeof(aux),1,arch);
@@ -970,7 +972,7 @@ void CreaDisco(int i, int j){
 
 void LeeDiscos(){
     int i=0,j=0;
-    int CantDiscos;
+    int CantDiscos,aux;
     FILE* arch;
     while(i<_argc && strcmp(_argv[i]+strlen(_argv[i])-4,".vdd")!=0)//Recorro hasta encontrar el PRIMER Parametro (y tambien disco) .vdd
         i++;
@@ -981,12 +983,11 @@ void LeeDiscos(){
         if (arch==NULL)
             CreaDisco(i,j);
         (discos+j)->estado=0;
-        fseek(arch,34,SEEK_SET);
-        fread(&discos[j].cantCil,sizeof(int),1,arch);
-        fseek(arch,35,SEEK_SET);
-        fread(&discos[j].cantCab,sizeof(int),1,arch);
-        fseek(arch,36,SEEK_SET);
-        fread(&discos[j].cantSector,sizeof(int),1,arch);
+        fseek(arch,32,SEEK_SET);
+        fread(&aux,sizeof(int),1,arch);//El menos significativo es el primero en leer
+        discos[j].cantCil=aux>>8 & LOW_MASK;
+        discos[j].cantCab=aux>>16 & LOW_MASK;
+        discos[j].cantSector=aux>>24 & LOW_MASK;
         strcpy((discos+j)->nombreArch ,_argv[i]);
         i++;
         j++;

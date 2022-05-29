@@ -11,9 +11,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-            //"args": ["jump.asm","jump.mv2"],
-            //"args": ["jump.mv2","-b", "-c", "-d"],
-            "args": ["jump.mv2","-b"], //"jump.asm"
+           // "args": ["a.asm","a.mv2"],
+            "args": ["a.mv2","-b", "-c", "-d","disco0.vdd","disco1.vdd","disco2.vdd"],
+            //"args": ["mvx.exe", "jump.mv2", "-b", "-c", "-d", "disco10.vdd","disco5.vdd","disco6.vdd","disco8.vdd","disco15.vdd","disco1.vdd"], //"jump.asm"
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
             "environment": [],
