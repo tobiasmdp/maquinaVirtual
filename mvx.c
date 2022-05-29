@@ -951,13 +951,13 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=1;//tipo
-    aux<<=8;
-    aux|=128;//cantidad de cilindros
+    aux=128;//cantidad de sectores
     aux<<=8;
     aux|=128;//cantidad de cabezas
     aux<<=8;
-    aux|=128;//cantidad de sectores
+    aux|=128;//cantidad de cilindros
+    aux<<=8;
+    aux|=1;//tipo
     fwrite(&aux,sizeof(aux),1,arch);
     aux=MinUDisco;//tamaño de un sector
     fwrite(&aux,sizeof(aux),1,arch);
@@ -970,7 +970,7 @@ void CreaDisco(int i, int j){
 
 void LeeDiscos(){
     int i=0,j=0;
-    int CantDiscos;
+    int CantDiscos,aux;
     FILE* arch;
     while(i<_argc && strcmp(_argv[i]+strlen(_argv[i])-4,".vdd")!=0)//Recorro hasta encontrar el PRIMER Parametro (y tambien disco) .vdd
         i++;
@@ -981,12 +981,11 @@ void LeeDiscos(){
         if (arch==NULL)
             CreaDisco(i,j);
         (discos+j)->estado=0;
-        fseek(arch,34,SEEK_SET);
-        fread(&discos[j].cantCil,sizeof(int),1,arch);
-        fseek(arch,35,SEEK_SET);
-        fread(&discos[j].cantCab,sizeof(int),1,arch);
-        fseek(arch,36,SEEK_SET);
-        fread(&discos[j].cantSector,sizeof(int),1,arch);
+        fseek(arch,32,SEEK_SET);
+        fread(&aux,sizeof(int),1,arch);//El menos significativo es el primero en leer
+        discos[j].cantCil=aux>>8 & LOW_MASK;
+        discos[j].cantCab=aux>>16 & LOW_MASK;
+        discos[j].cantSector=aux>>24 & LOW_MASK;
         strcpy((discos+j)->nombreArch ,_argv[i]);
         i++;
         j++;
