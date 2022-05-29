@@ -439,8 +439,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             }
         }
     }
-    else 
-      if (Sys == 2){ // escritura
+    else if (Sys == 2){ // escritura
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                 exit(EXIT_FAILURE);
@@ -464,46 +463,43 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 printf("\n");
             cont++;
         }
-      }
-      else
-        if (Sys == 15){ //breakpoint - flags
-            if (checkFlag("-c"))
-                system("cls");
-            if (checkFlag("-d"))
-                disassembler(registro,memoria);
-            if (checkFlag("-b"))
-                breakpoint(registro,memoria);
-        }
-        else
-            if (Sys == 3){ //String read
-                if ((registro[EAX]&0x0800)>>11==0)
-                    printf("[%04d]: ",(indice+i));
-                scanf("%s",caracter);
-                i=0;
-                if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento]) ){
-                    printf("Segmentation fault -> Linea: %d", low(registro[IP]));
-                    exit(EXIT_FAILURE);
-                }
-                while (i<strlen(caracter) && i<registro[ECX]&REG_MASK){
-                    memoria[indice+i]=caracter[i];
-                    i++;
-                }
-                memoria[indice+i]='\0';
+    }
+    else if (Sys == 15){ //breakpoint - flags
+        if (checkFlag("-c"))
+            system("cls");
+        if (checkFlag("-d"))
+            disassembler(registro,memoria);
+        if (checkFlag("-b"))
+             breakpoint(registro,memoria);
+    }
+    else if (Sys == 3){ //String read
+        if ((registro[EAX]&0x0800)>>11==0)
+            printf("[%04d]: ",(indice+i));
+            scanf("%s",caracter);
+            i=0;
+            if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento]) ){
+                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+                exit(EXIT_FAILURE);
             }
-            else if (Sys == 4){ //String write
-                if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
-                    printf("Segmentation fault -> Linea: %d", low(registro[IP]));
-                    exit(EXIT_FAILURE);
-                }
-                if ((registro[EAX]&0x0800)>>11==0)
-                    printf("[%04d]: ",(indice+i));
-                while (memoria[indice+i]!=0){
-                    printf("%c",memoria[indice+i]);
-                    i++;
-                }
-                if ((registro[EAX]&0x0100)>>8==0)
-                    printf("\n");
-                
+            while (i<strlen(caracter) && i<registro[ECX]&REG_MASK){
+                memoria[indice+i]=caracter[i];
+                i++;
+            }
+            memoria[indice+i]='\0';
+    }
+    else if (Sys == 4){ //String write
+        if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
+            printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+            exit(EXIT_FAILURE);
+        }
+        if ((registro[EAX]&0x0800)>>11==0)
+            printf("[%04d]: ",(indice+i));
+        while (memoria[indice+i]!=0){
+            printf("%c",memoria[indice+i]);
+            i++;
+        }
+        if ((registro[EAX]&0x0100)>>8==0)
+            printf("\n");  
                /* //2da Variante de metodo
                 while (memoria[indice+i]!=0){
                     if ((registro[EAX]&0x0800)>>11==0)
@@ -515,54 +511,81 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 if ((registro[EAX]&0x0100)>>8==0)
                     printf("\n");
                 */
+    }
+    else if (Sys == 7) //clear screen
+        system("cls");    
+    else if (Sys==13){//Trabajos con disco
+        aux=get_value(&registro[EAX],HIGH_MASK);
+        indice=dirmemoria(registro[EBX],registro,memoria);
+        CantSectores=get_value(&registro[EAX],LOW_MASK);
+        numCil=get_value(&registro[ECX],HIGH_MASK);
+        numCab=get_value(&registro[ECX],LOW_MASK);
+        numSec=get_value(&registro[EDX],HIGH_MASK);
+        numDisco=get_value(&registro[EDX],LOW_MASK);
+        arch=fopen((discos+numDisco)->nombreArch,"rb");
+        if (arch == NULL){
+            set_value(registro+10,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
+            printf("%X No existe disco \n",49); 
+        }
+        else if (numCil>(discos+numDisco)->cantCil){
+            set_value(registro+10,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
+            printf("%X Número inválido de cilindro \n",11);
+        }
+        else if (numCab>(discos+numDisco)->cantCab){
+            set_value(registro+10,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
+            printf("%X Número inválido de cabeza \n",12);
+        } 
+        else if (numSec>(discos+numDisco)->cantSector){
+            set_value(registro+10,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
+            printf("%X Número inválido de sector \n",13);
+        } 
+        else {
+            if(aux==0){                                 //Consulto estado
+                printf("estado del disco %s \n",(discos+numDisco)->estado);
+                set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
             }
-            else if (Sys == 7) //clear screen
-                    system("cls");    
-            else if (Sys==13){//Trabajos con disco
-                aux=get_value(&registro[EAX],HIGH_MASK);
-                indice=dirmemoria(registro[EBX],registro,memoria);
-                CantSectores=get_value(&registro[EAX],LOW_MASK);
-                numCil=get_value(&registro[ECX],HIGH_MASK);
-                numCab=get_value(&registro[ECX],LOW_MASK);
-                numSec=get_value(&registro[EDX],HIGH_MASK);
-                numDisco=get_value(&registro[EDX],LOW_MASK);
-                arch=fopen((discos+numDisco)->nombreArch,"rb");
-                if (arch == NULL){
-                    set_value(registro+10,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
-                    printf("%X No existe disco"); 
-                } else if (numCil>(discos+numDisco)->cantCil){
-                    set_value(registro+10,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
-                    printf("%X Número inválido de cilindro");
-                } else if (numCab>(discos+numDisco)->cantCab){
-                    set_value(registro+10,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
-                    printf("%X Número inválido de cabeza");
-                } else if (numSec>(discos+numDisco)->cantSector){
-                    set_value(registro+10,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
-                    printf("%X Número inválido de sector");
-                } else {
-                    if(aux==0){                                 //Consulto estado
-                        printf("estado del disco %s",(discos+numDisco)->estado);
-                        set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
-                    }
-                    else if(aux==2){                            //Leo del disco
-                        fseek(arch,MinUDisco+numCil*numCab*numSec,SEEK_SET); //aca creo que iria un +1
-                            
-                        fread(memoria[indice],sizeof(int),MinUDisco/4*CantSectores,arch);
-                    }
-                    else if(aux==3){                            //Escribir en el disco
-                        fwrite(memoria[indice],sizeof(int),(MinUDisco*CantSectores)/4,arch);    
-                    }
-                    else if(aux==8){                            //Obtener los parametros del disco
-                        set_value(registro+12,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
+            else if(aux==2){                            //Leo del disco
+                fseek(arch,MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec),SEEK_SET); //aca creo que iria un +1            
+                fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
+                if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){
+                    set_value(registro+13,(discos+numDisco)->cantSector-numSec,HIGH_MASK);
+                    set_value(registro+10,0,HIGH_MASK);
+                }
+                else if((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
+                    set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                }
+                else{
+                  set_value(registro+10,4,HIGH_MASK);
+                  printf("%X Error de lectura \n",4);
+                }
+            }
+            else if(aux==3){                            //Escribir en el disco
+                fseek(arch,MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec),SEEK_SET);
+                fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);    
+                if (MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector<(MinUDisco*CantSectores)/4){
+                    set_value(registro+10,255,HIGH_MASK);
+                    printf("%X Falla en la operacion \n",255);
+                }
+                if((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>=(MinUDisco*CantSectores)/4){  // me fijo en el antes de && que sea el segmento, y despues me gijo que el valor total del segmento menos la posicion en la que empiezo sea mayor o igual a lo que voy a cargar
+                    set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
+                }
+                else{
+                  set_value(registro+10,204,HIGH_MASK);
+                  printf("%X Falla de Escritura \n",204);
+                }
+            }
+            else if(aux==8){                            //Obtener los parametros del disco
+                set_value(registro+12,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
                         printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,HIGH_MASK),numDisco);
                         set_value(registro+12,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
+                        printf("%d cantidad de cabezas en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
                         set_value(registro+13,(discos+numDisco)->cantSector,HIGH_MASK); //se carga en DH
-                        printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+13,HIGH_MASK),numDisco);
+                        printf("%d cantidad de sector en el disco %d \n",get_value(registro+13,HIGH_MASK),numDisco);
                         set_value(registro+10,0,HIGH_MASK);//seteo el AH en exito
                     } 
                     else{ 
                         set_value(registro+10,1,HIGH_MASK);//seteo el AH en funcion invalida
-                        printf("%X Funcion invalida");
+                        printf("%X Funcion invalida \n");
                     }
                 }
             }
@@ -821,7 +844,7 @@ int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
     else
         i=0;
     while (i<low(registro[DS]) && i<5+low(registro[IP])){
-        if (i==low(registro[IP]))
+        if (i==low(registro[IP])-1)
             printf(">");
         else
             printf(" ");
