@@ -283,7 +283,7 @@ int checkRegistro(char* cadena){
     char cadenaAux[5];
     if (strlen(cadena) <= largoRegistro){
         strcpy(cadenaAux, cadena);
-        if (stricmp(cadenaAux,"HP") == 0 || stricmp(cadenaAux,"IP") == 0 || stricmp(cadenaAux,"SP") == 0 || stricmp(cadenaAux,"BP") == 0 || stricmp(cadenaAux,"AC") == 0)
+        if (stricmp(cadenaAux,"DS") == 0 || stricmp(cadenaAux,"SS") == 0 || stricmp(cadenaAux,"ES") == 0 || stricmp(cadenaAux,"CS") == 0 || stricmp(cadenaAux,"HP") == 0 || stricmp(cadenaAux,"IP") == 0 || stricmp(cadenaAux,"SP") == 0 || stricmp(cadenaAux,"BP") == 0 || stricmp(cadenaAux,"CC") == 0 || stricmp(cadenaAux,"AC") == 0)
             return 1; // no es registro de proposito general
         for (i = 0; i < largoCadena; i++) // mayusc copia de cadena
             cadenaAux[i] = toupper(cadena[i]);
@@ -347,17 +347,6 @@ void removeExtremos(char* cadena, char* out){ //remueve el primer y ultimo char 
     out [largoCadena-2] ='\0'; //marco el fin de la cadena
 }
 
-/*void addCorchetes(char* cadena, char* out){ //añade corchetes al string
-    int i =1;
-    out[0] = '[';
-    while (cadena[i-1]){
-        out[i] = cadena[i-1];
-        i++;
-    }
-    out[i]=']';
-    out[i+1]='\0';
-}*/ //codigo fantasma pepe
-
 int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
     if (s[0]=='\'')
         return s[1];
@@ -376,6 +365,14 @@ int anyToInt(char *s, char **out){ //el out no se usa... se le pasa un cono
 int operandoRegistro(char *operandoEnString){
     int largoCadena = strlen(operandoEnString);
     // Registros especificos
+    if (stricmp(operandoEnString, "DS") == 0)
+        return (0);
+    if (stricmp(operandoEnString, "SS") == 0)
+        return (1);
+    if (stricmp(operandoEnString, "ES") == 0)
+        return (2);
+    if (stricmp(operandoEnString, "CS") == 0)
+        return (3);
     if (stricmp(operandoEnString, "HP") == 0)
         return (4);
     if (stricmp(operandoEnString, "IP") == 0)
@@ -384,6 +381,8 @@ int operandoRegistro(char *operandoEnString){
         return (6);
     if (stricmp(operandoEnString, "BP") == 0)
         return (7);
+    if (stricmp(operandoEnString, "CC") == 0)
+        return (8);    
     if (stricmp(operandoEnString, "AC") == 0)
         return (9);
     // Registros de proposito general
@@ -408,7 +407,15 @@ int operandoIndirecto(char* operandoEnString){
     strcpy(cadenaAux, operandoEnString);
     largoCadenaAux = strlen(cadenaAux);
     if (largoCadenaAux == 2){// if contien registro largo 2
-        if (stricmp(operandoEnString, "HP") == 0)
+        if (stricmp(operandoEnString, "DS") == 0)
+            resultado = (0);
+        else if (stricmp(operandoEnString, "SS") == 0)
+            resultado = (1);
+        else if (stricmp(operandoEnString, "ES") == 0)
+            resultado = (2);
+        else if (stricmp(operandoEnString, "CS") == 0)
+            resultado = (3);
+        else if (stricmp(operandoEnString, "HP") == 0)
             resultado = (4);
         else if (stricmp(operandoEnString, "IP") == 0)
             resultado = (5);
@@ -416,6 +423,8 @@ int operandoIndirecto(char* operandoEnString){
             resultado = (6);
         else if (stricmp(operandoEnString, "BP") == 0)
             resultado = (7);
+        else if (stricmp(operandoEnString, "CC") == 0)
+            resultado = (8);    
         else if (stricmp(operandoEnString, "AC") == 0)
             resultado = (9);
         else
@@ -425,7 +434,15 @@ int operandoIndirecto(char* operandoEnString){
         resultado = toupper(cadenaAux[1])-55; 
     else{
         if (cadenaAux[2] == '+' || cadenaAux[2] == '-'){
-            if (toupper(cadenaAux[0]) == 'H' && toupper(cadenaAux[1]) == 'P')
+            if (toupper(cadenaAux[0]) == 'D' && toupper(cadenaAux[1]) == 'S')
+                resultado = (0);
+            else if (toupper(cadenaAux[0]) == 'S' && toupper(cadenaAux[1]) == 'S')
+                resultado = (1);
+            else if (toupper(cadenaAux[0]) == 'E' && toupper(cadenaAux[1]) == 'S')
+                resultado = (2);
+            else if (toupper(cadenaAux[0]) == 'C' && toupper(cadenaAux[1]) == 'S')
+                resultado = (3);
+            else if (toupper(cadenaAux[0]) == 'H' && toupper(cadenaAux[1]) == 'P')
                 resultado = (4);
             else if (toupper(cadenaAux[0]) == 'I' && toupper(cadenaAux[1]) == 'P')
                 resultado = (5);
@@ -433,6 +450,8 @@ int operandoIndirecto(char* operandoEnString){
                 resultado = (6);
             else if (toupper(cadenaAux[0]) == 'B' && toupper(cadenaAux[1]) == 'P')
                 resultado = (7);
+            else if (toupper(cadenaAux[0]) == 'C' && toupper(cadenaAux[1]) == 'C')
+                resultado = (8);
             else if (toupper(cadenaAux[0]) == 'A' && toupper(cadenaAux[1]) == 'C')
                 resultado = (9);
             else
@@ -619,11 +638,11 @@ void printeo(int dirMem, int instruccion, char* lineaParseada[]){
     char coma[largoLinea]=";";
     if(lineaParseada[1]){ //tiene mnemonico --> linea comun
         if (lineaParseada[0] != 0) //si tiene rotulo
-            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %11s %-11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11s: %4s %11s %11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             lineaParseada[0], lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2],
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
         else
-            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %11s %-11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
+            printf("[%04d]:  %02X %02X %02X %02X %11d: %4s %11s %11s %s", dirMem, (instruccion>>24)&0xFF, (instruccion>>16)&0xFF, (instruccion>>8)&0xFF, (instruccion)&0xFF, 
             dirMem+1, lineaParseada[1], (lineaParseada[2] == 0) ? "" : lineaParseada[2], 
             (lineaParseada[3] == 0) ? "" : lineaParseada[3], (lineaParseada[4] == 0) ? "" : strcat(coma,lineaParseada[4]));
     }
