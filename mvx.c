@@ -581,17 +581,22 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
             }
             else if(aux==3){                            //Escribir en el disco
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){
-                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4){
-                        fseek(arch,posEnDisco,SEEK_SET);
-                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
-                        set_value(registro+EAX,0,HIGH_MASK);
-                        discos[numDisco].estado=0;
+                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
+                    fseek(arch,0,SEEK_END);
+                    long int tamanioArchivo=ftell(arch);
+                    if(tamanioArchivo<tamanioDisco){ //agrego los 0
+                        fseek(arch,0,SEEK_END);
+                        fwrite(0,sizeof(int),tamanioDisco-tamanioArchivo,arch);                        
                     }
-                    else{
-                        set_value(registro+EAX,255,HIGH_MASK);
-                        discos[numDisco].estado=255;
+                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
+                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
+                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
+                    else{ //supero el tamaño del disco 
+                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
+                        set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
                     }
+                    set_value(registro+EAX,0,HIGH_MASK);
+                    discos[numDisco].estado=0;
                 }
                 else{
                     set_value(registro+EAX,204,HIGH_MASK);
