@@ -1,1 +1,1 @@
-CMP [EBX],[EBX-2]
+        sys   2                

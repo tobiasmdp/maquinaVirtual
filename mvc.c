@@ -100,8 +100,6 @@ int main(int argc, char const *argv[]){
                 }
                 else if (mnemonico >= 0x0 && mnemonico <= 0xF){ //2 OP
                     instruccion = mnemonico<<28;
-                    transformNull(lineaParseada[2]);
-                    transformNull(lineaParseada[3]);
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     tipoOperando2 = getTipoOperando(lineaParseada[3]);
                     instruccion |= tipoOperando1<<26;
@@ -115,7 +113,6 @@ int main(int argc, char const *argv[]){
                 }
                 else if (mnemonico >= 0xF0 && mnemonico <= 0xFF){ //1 OP 
                     instruccion = mnemonico<<24;
-                    transformNull(lineaParseada[2]); 
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
                     instruccion |= tipoOperando1<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
