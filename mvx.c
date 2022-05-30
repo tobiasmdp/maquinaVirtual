@@ -708,7 +708,7 @@ void POP(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 }
 void CALL(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
     int auxA=get_value(A,mascaraA);
-    PUSH(memoria+dirmemoria(registro[IP],registro,memoria),mascaraA,B,C,D,mascaraB,memoria,registro);
+    PUSH(&registro[IP],mascaraA,B,C,D,mascaraB,memoria,registro);
     JMP(A,mascaraA,B,C,D,mascaraB,memoria,registro);
 }
 
