@@ -414,11 +414,11 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud,i=0,aux,segmento=high(registro[EDX]);
     char caracter[255];
-    indice=dirmemoria(registro[EDX],registro,memoria);
     int numCil, numCab,numSec,CantSectores,numDisco;
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
+         indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -448,6 +448,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
     }
     else if (Sys == 2){ // escritura
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                 exit(EXIT_FAILURE);
@@ -481,6 +482,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
              breakpoint(registro,memoria);
     }
     else if (Sys == 3){ //String read
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if ((registro[EAX]&0x0800)>>11==0)
             printf("[%04d]: ",(indice+i));
             scanf("%s",caracter);
@@ -496,6 +498,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             memoria[indice+i]='\0';
     }
     else if (Sys == 4){ //String write
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -908,6 +911,7 @@ int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
 }
 
 void imprimeOperando(int tipoOp, int op){
+    char* Procesador[10]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC"};
     int tiporeg=op & 0x30;
     if (tipoOp==0){                                             //Inmediato
        printf("%2d",op);
@@ -915,16 +919,21 @@ void imprimeOperando(int tipoOp, int op){
     else if (tipoOp==2)                                         //Directo
         printf("[%2d]",op);
     else if (tipoOp==1){                                        //Registro
-        if (tiporeg==0)
-            printf("E");
-        printf ("%X",(op & 0x0F));   
-        if (tiporeg==1)                                               // registro del 4to byte
-            printf("L");
-        else if (tiporeg==2)                                          // registro del 3 byte
-            printf("H");
-        else                                                          //registro de 2 bytes
-            printf("X");
+        if((op & 0xF)<10){
+            printf("%3s",Procesador[op & 0xF]);
         }
+        else{
+            if (tiporeg==0)
+                printf("E");
+            printf ("%X",(op & 0x0F));   
+            if (tiporeg==1)                                               // registro del 4to byte
+                printf("L");
+            else if (tiporeg==2)                                          // registro del 3 byte
+                printf("H");
+            else                                                          //registro de 2 bytes
+                printf("X");
+        }
+    }
     else{                                                       //Indirecto
         printf("[E%XX+ %d]",op & 0x0F,op& 0xFF0);
     }
