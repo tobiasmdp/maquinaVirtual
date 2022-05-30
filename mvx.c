@@ -145,7 +145,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
     arch=fopen(_argv[1],"rb");
-    int header[6]={0},i=0,aux;
+    int header[6],i=0,aux;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
     fread(header+i,sizeof(int),1,arch);
@@ -482,6 +482,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
              breakpoint(registro,memoria);
     }
     else if (Sys == 3){ //String read
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if ((registro[EAX]&0x0800)>>11==0)
             printf("[%04d]: ",(indice+i));
             scanf("%s",caracter);
@@ -917,24 +918,31 @@ int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
 
 void imprimeOperando(int tipoOp, int op){
     int tiporeg=op & 0x30;
+    char* Procesador[10]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC"};
     if (tipoOp==0){                                             //Inmediato
        printf("%2d",op);
     }
     else if (tipoOp==2)                                         //Directo
         printf("[%2d]",op);
     else if (tipoOp==1){                                        //Registro
-        if (tiporeg==0)
-            printf("E");
-        printf ("%X",(op & 0x0F));   
-        if (tiporeg==1)                                               // registro del 4to byte
-            printf("L");
-        else if (tiporeg==2)                                          // registro del 3 byte
-            printf("H");
-        else                                                          //registro de 2 bytes
-            printf("X");
+        if((op & 0xF)<10){
+            printf("%3s",Procesador[op & 0xF]);
         }
+        else{
+            if (tiporeg==0)
+                printf("E");
+            printf ("%X",(op & 0x0F));   
+            if (tiporeg==1)                                               // registro del 4to byte
+                printf("L");
+            else if (tiporeg==2)                                          // registro del 3 byte
+                printf("H");
+            else                                                          //registro de 2 bytes
+                printf("X");
+        }
+    }
     else{                                                       //Indirecto
         printf("[E%XX+ %d]",op & 0x0F,op& 0xFF0);
+    
     }
 }
 
@@ -986,8 +994,10 @@ void LeeDiscos(){
     discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
     while (j<CantDiscos && j<255){
         arch=fopen(_argv[i],"rb");
-        if (arch==NULL)
+        if (arch==NULL){
             CreaDisco(i,j);
+            arch=fopen(_argv[i],"rb");
+        }
         (discos+j)->estado=0;
         fseek(arch,32,SEEK_SET);
         fread(&aux,sizeof(int),1,arch);//El menos significativo es el primero en leer
