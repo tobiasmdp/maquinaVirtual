@@ -415,6 +415,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     int indice,contc,cont=0,longitud,i=0,aux,segmento=high(registro[EDX]);
     char caracter[255];
     int numCil, numCab,numSec,CantSectores,numDisco;
+    int cero=0;
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
@@ -533,78 +534,11 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         numCab=get_value(&registro[ECX],LOW_MASK);
         numSec=get_value(&registro[EDX],HIGH_MASK);
         numDisco=get_value(&registro[EDX],LOW_MASK);
-        
-        arch=fopen((discos+numDisco)->nombreArch,"rb");
-        if (arch == NULL){
-            set_value(registro+EAX,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
-            printf("%X No existe disco \n",49); 
-        }
-        else if (numCil>(discos+numDisco)->cantCil){
-            set_value(registro+EAX,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
-            discos[numDisco].estado=11;
-        }
-        else if (numCab>(discos+numDisco)->cantCab){
-            set_value(registro+EAX,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
-            discos[numDisco].estado=12;
-        } 
-        else if (numSec>(discos+numDisco)->cantSector){
-            set_value(registro+EAX,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
-            discos[numDisco].estado=13;
-        } 
-        else {
-            long int posEnDisco=MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec);
-            long int tamanioDisco = HeaderDisco+(MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector); 
-            if(aux==0){                                 //Consulto estado
+        if(aux==0){                                 //Consulto estado
                 printf("ultimo estado del disco %X \n",(discos+numDisco)->estado);
                 set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exitos
-            }
-            else if(aux==2){                            //Leo del disco            
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
-                    fseek(arch,0,SEEK_END);
-                    long int tamanioArchivo=ftell(arch);
-                    if(tamanioArchivo<tamanioDisco){ //agrego los 0
-                        fseek(arch,0,SEEK_END);
-                        fwrite(0,sizeof(int),tamanioDisco-tamanioArchivo,arch);                        
-                    }
-                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
-                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
-                        fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
-                    else{ //supero el tamaño del disco 
-                        fread(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
-                        set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
-                    }
-                    set_value(registro+EAX,0,HIGH_MASK);
-                    discos[numDisco].estado=0;
-                }
-                else{ //no tengo la cantidad de memoria contigua necesaria
-                    set_value(registro+EAX,4,HIGH_MASK);
-                    discos[numDisco].estado=4;
-                }
-            }
-            else if(aux==3){                            //Escribir en el disco
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
-                    fseek(arch,0,SEEK_END);
-                    long int tamanioArchivo=ftell(arch);
-                    if(tamanioArchivo<tamanioDisco){ //agrego los 0
-                        fseek(arch,0,SEEK_END);
-                        fwrite(0,sizeof(int),tamanioDisco-tamanioArchivo,arch);                        
-                    }
-                    fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
-                    if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
-                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),MinUDisco*CantSectores/4,arch); 
-                    else{ //supero el tamaño del disco 
-                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
-                        set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
-                    }
-                    set_value(registro+EAX,0,HIGH_MASK);
-                    discos[numDisco].estado=0;
-                }
-                else{
-                    set_value(registro+EAX,204,HIGH_MASK);
-                    discos[numDisco].estado=204;
-                }
-            }
-            else if(aux==8){//Obtener los parametros del disco
+        }
+        else if(aux==8){//Obtener los parametros del disco
                 set_value(registro+ECX,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
                 printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+ECX,HIGH_MASK),numDisco);
                 set_value(registro+ECX,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
@@ -614,12 +548,84 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exito
                 discos[numDisco].estado=0;
             } 
-            else{ 
-                set_value(registro+EAX,1,HIGH_MASK);//seteo el AH en funcion invalida
-                discos[numDisco].estado=1;
+        else{
+            arch=fopen((discos+numDisco)->nombreArch,"rb+");
+            if (arch == NULL){
+                set_value(registro+EAX,49,HIGH_MASK);//seteo el AH en no existe disco 49 dec= 31 hexa
+                printf("%X No existe disco \n",49); 
             }
+            else if (numCil>(discos+numDisco)->cantCil  || numCil<0){
+                set_value(registro+EAX,11,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 11dec=B hexa
+                discos[numDisco].estado=11;
+            }
+            else if (numCab>(discos+numDisco)->cantCab || numCab<0){
+                set_value(registro+EAX,12,HIGH_MASK);//seteo el AH en que pido mas cabezas de los que tengo 12dec=C hexa
+                discos[numDisco].estado=12;
+            } 
+            else if (numSec>(discos+numDisco)->cantSector || numSec<0){
+                set_value(registro+EAX,13,HIGH_MASK);//seteo el AH en que pido mas cilindros de los que tengo 13dec=D hexa
+                discos[numDisco].estado=13;
+            } 
+            else {
+                indice=dirmemoria(registro[EBX],registro,memoria);
+                long int posEnDisco=MinUDisco*(1+numCil*((discos+numDisco)->cantCil)*((discos+numDisco)->cantSector)+numCab*((discos+numDisco)->cantCab)+numSec);
+                long int tamanioDisco = HeaderDisco+(MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector); 
+                
+                if(aux==2){                            //Leo del disco            
+                    if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
+                        fseek(arch,0,SEEK_END);
+                        long int tamanioArchivo=ftell(arch);
+                        if(tamanioArchivo<posEnDisco){ //agrego los 0
+                            fseek(arch,0,SEEK_END);
+                            for(long int j=0;j<(posEnDisco-tamanioArchivo)/4;j++)
+                                fwrite(&cero,sizeof(int),1,arch);                        
+                        }
+                        fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
+                        if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
+                            fread(&memoria[indice],sizeof(int),MinUDisco*CantSectores/4,arch); 
+                        else{ //supero el tamaño del disco 
+                            fread(&memoria[indice],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
+                            set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
+                        }
+                        set_value(registro+EAX,0,HIGH_MASK);
+                        discos[numDisco].estado=0;
+                    }
+                    else{ //no tengo la cantidad de memoria contigua necesaria
+                        set_value(registro+EAX,4,HIGH_MASK);
+                        discos[numDisco].estado=4;
+                    }
+                }
+                else if(aux==3){                            //Escribir en el disco
+                    if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
+                        fseek(arch,0,SEEK_END);
+                        long int tamanioArchivo=ftell(arch);
+                        if(tamanioArchivo<posEnDisco){ //agrego los 0
+                            fseek(arch,0,SEEK_END);
+                            for(long int j=0;j<(posEnDisco-tamanioArchivo)/4;j++)
+                                fwrite(&cero,sizeof(int),1,arch);                        
+                        }
+                        fseek(arch,posEnDisco,SEEK_SET); //aca creo que iria un +1
+                        if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4)//compruebo que lo que quiero leer entre en el disco
+                            fwrite(&memoria[indice],sizeof(int),MinUDisco*CantSectores/4,arch); 
+                        else{ //supero el tamaño del disco 
+                            fwrite(&memoria[indice],sizeof(int),(MinUDisco*((discos+numDisco)->cantSector-numSec))/4,arch);
+                            set_value(registro+EAX,(discos+numDisco)->cantSector-numSec,LOW_MASK);// seteo en el AH la cantidad de sectores que toque
+                        }
+                        set_value(registro+EAX,0,HIGH_MASK);
+                        discos[numDisco].estado=0;
+                    }
+                    else{
+                        set_value(registro+EAX,204,HIGH_MASK);
+                        discos[numDisco].estado=204;
+                    }
+                }
+                else{ 
+                    set_value(registro+EAX,1,HIGH_MASK);//seteo el AH en funcion invalida
+                    discos[numDisco].estado=1;
+                }
+            }
+            fclose(arch);
         }
-        fclose(arch);
     }
 }
 
@@ -967,11 +973,11 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=128;//cantidad de sectores
+    aux=127;//cantidad de sectores
     aux<<=8;
-    aux|=128;//cantidad de cabezas
+    aux|=127;//cantidad de cabezas
     aux<<=8;
-    aux|=128;//cantidad de cilindros
+    aux|=127;//cantidad de cilindros
     aux<<=8;
     aux|=1;//tipo
     fwrite(&aux,sizeof(aux),1,arch);
