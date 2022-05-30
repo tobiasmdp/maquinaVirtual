@@ -145,7 +145,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
     arch=fopen(_argv[1],"rb");
-    int header[6]={0},i=0,aux;
+    int header[6],i=0,aux;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
     fread(header+i,sizeof(int),1,arch);
@@ -414,11 +414,11 @@ void SHR(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
 void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){ //acomodar las variables
     int indice,contc,cont=0,longitud,i=0,aux,segmento=high(registro[EDX]);
     char caracter[255];
+    indice=dirmemoria(registro[EDX],registro,memoria);
     int numCil, numCab,numSec,CantSectores,numDisco;
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
-        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -448,7 +448,6 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
     }
     else if (Sys == 2){ // escritura
-        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                 exit(EXIT_FAILURE);
@@ -497,7 +496,6 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             memoria[indice+i]='\0';
     }
     else if (Sys == 4){ //String write
-        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -531,7 +529,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         numCil=get_value(&registro[ECX],HIGH_MASK);
         numCab=get_value(&registro[ECX],LOW_MASK);
         numSec=get_value(&registro[EDX],HIGH_MASK);
-        numDisco=get_value(&registro[EDX],LOW_MASK)-1;
+        numDisco=get_value(&registro[EDX],LOW_MASK);
         
         arch=fopen((discos+numDisco)->nombreArch,"rb");
         if (arch == NULL){
@@ -995,7 +993,3 @@ void LeeDiscos(){
         fclose(arch);
     }
 }
-//pepe
-//pepe
-//pepe
-//pepe
