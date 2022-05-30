@@ -582,10 +582,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
             }
             else if(aux==3){                            //Escribir en el disco
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){
+                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(registro[EBX],registro,memoria)+(MinUDisco*CantSectores)/4 <= high(registro[high(registro[EBX])]) + low(registro[high(registro[EBX])])){
                     if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4){
                         fseek(arch,posEnDisco,SEEK_SET);
-                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
+                        fwrite(&memoria[dirmemoria(registro[EBX],registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
                         set_value(registro+EAX,0,HIGH_MASK);
                         discos[numDisco].estado=0;
                     }

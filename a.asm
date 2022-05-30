@@ -1,7 +1,8 @@
 ldh 2 ; Código del ES
 ldl 64 ; offset del ES
 mov EBX, AC ; Dirección del buffer de lectura
-
+mov cx, 70
+MOV AX, %000
 mov EDX, AC
 SYS %3
 
