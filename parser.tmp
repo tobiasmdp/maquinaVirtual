@@ -1,1 +1,1 @@
-RET
+CMP [EBX],[EBX-2]

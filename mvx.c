@@ -924,7 +924,8 @@ int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
 
 void imprimeOperando(int tipoOp, int op){
     int tiporeg=op & 0x30;
-    char* Procesador[10]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC"};
+    int offset;
+    char* Procesador[16]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC","EAX","EBX","ECX","EDX","EEX","EFX"};
     if (tipoOp==0){                                             //Inmediato
        printf("%2d",op);
     }
@@ -946,9 +947,16 @@ void imprimeOperando(int tipoOp, int op){
                 printf("X");
         }
     }
-    else{                                                       //Indirecto
-        printf("[E%XX+ %d]",op & 0x0F,op& 0xFF0);
-    
+    else{                                      //Indirecto
+        offset=(op& 0xFF0)>>4;
+        offset<<=24;
+        offset>>=24;
+        if(offset>0)
+            printf("[%3s+%d]",Procesador[op & 0xF],offset);
+        else if(offset<0)
+            printf("[%3s%d]",Procesador[op & 0xF],offset);
+        else
+            printf("[%3s]",Procesador[op & 0xF]);
     }
 }
 
