@@ -145,7 +145,7 @@ int main(int argc, char const *argv[]){ // VER BIEN LOS ARGUMENTOS
 void LeeArch(int memoria[],int registro[]){
     FILE* arch;
     arch=fopen(_argv[1],"rb");
-    int header[6],i=0,aux;
+    int header[6]={0},i=0,aux;
     if (arch == NULL)
         printf("Error en la apertura. Es posible que el archivo no exista");
     fread(header+i,sizeof(int),1,arch);
@@ -153,7 +153,7 @@ void LeeArch(int memoria[],int registro[]){
         i++;
         fread(header+i,sizeof(int),1,arch);
     }
-    //el header[0] deberia valer 1297493298
+    
    if((header[0]>>24&0x0FF)!='M' || (header[0]>>16&0x0FF)!='V' || (header[0]>>8&0x0FF)!='-' || (header[0]&0x0FF)!='2' || (header[5]>>24&0x0FF)!='V' || (header[5]>>16&0x0FF)!='.' || (header[5]>>8&0x0FF)!='2' || (header[5]&0x0FF)!='2') {
         printf("El formato del archivo .mv2 no pudo ser validado");
         exit(EXIT_FAILURE);
@@ -418,7 +418,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     FILE *arch;
     int Sys=(*A & mascaraA);
     if (Sys == 1){// lectura 
-         indice=dirmemoria(registro[EDX],registro,memoria);
+        indice=dirmemoria(registro[EDX],registro,memoria);
         if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
@@ -482,7 +482,6 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
              breakpoint(registro,memoria);
     }
     else if (Sys == 3){ //String read
-        indice=dirmemoria(registro[EDX],registro,memoria);
         if ((registro[EAX]&0x0800)>>11==0)
             printf("[%04d]: ",(indice+i));
             scanf("%s",caracter);
@@ -556,10 +555,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
             long int tamanioDisco = HeaderDisco+(MinUDisco*(discos+numDisco)->cantCab*(discos+numDisco)->cantCil*(discos+numDisco)->cantSector); 
             if(aux==0){                                 //Consulto estado
                 printf("ultimo estado del disco %X \n",(discos+numDisco)->estado);
-                set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exito
+                set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exitos
             }
             else if(aux==2){                            //Leo del disco            
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
+                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && high(registro[high(registro[EBX])])-low(registro[EBX])>(MinUDisco*CantSectores)/4){// si no tengo la cantidad de memoria contiguas necesarias, me fijo que el valor total del segmento menos la posicion en la que empiezo sea menor o igual a lo que voy a cargar
                     fseek(arch,0,SEEK_END);
                     long int tamanioArchivo=ftell(arch);
                     if(tamanioArchivo<tamanioDisco){ //agrego los 0
@@ -582,10 +581,10 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
                 }
             }
             else if(aux==3){                            //Escribir en el disco
-                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(registro[EBX],registro,memoria)+(MinUDisco*CantSectores)/4 <= high(registro[high(registro[EBX])]) + low(registro[high(registro[EBX])])){
+                if ((high(registro[EBX])==0 || high(registro[EBX])==2) && dirmemoria(high(registro[EBX]),registro,memoria)-dirmemoria(EBX,registro,memoria)>(MinUDisco*CantSectores)/4){
                     if(tamanioDisco-HeaderDisco >= (MinUDisco*CantSectores)/4){
                         fseek(arch,posEnDisco,SEEK_SET);
-                        fwrite(&memoria[dirmemoria(registro[EBX],registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
+                        fwrite(&memoria[dirmemoria(EBX,registro,memoria)],sizeof(int),(MinUDisco*CantSectores)/4,arch);
                         set_value(registro+EAX,0,HIGH_MASK);
                         discos[numDisco].estado=0;
                     }
@@ -752,6 +751,7 @@ void set_value (int *a,int value, int mask){
 int low(int a){//accesos rapidos a la parte baja de un registro para no perder legibilidad, solo debe utilizarse exclusivamente para registros de procesador
     return a & REG_MASK;
 }
+
 int high(int a){
     return (a>>16) & REG_MASK;
 }
@@ -911,7 +911,6 @@ int indiceM,indiceP,j,i=dirmemoria(registro[IP],registro,memoria),tipoOp;
 }
 
 void imprimeOperando(int tipoOp, int op){
-    char* Procesador[10]={"DS","SS","ES","CS","HP","IP","SP","BP","CC","AC"};
     int tiporeg=op & 0x30;
     if (tipoOp==0){                                             //Inmediato
        printf("%2d",op);
@@ -919,21 +918,16 @@ void imprimeOperando(int tipoOp, int op){
     else if (tipoOp==2)                                         //Directo
         printf("[%2d]",op);
     else if (tipoOp==1){                                        //Registro
-        if((op & 0xF)<10){
-            printf("%3s",Procesador[op & 0xF]);
+        if (tiporeg==0)
+            printf("E");
+        printf ("%X",(op & 0x0F));   
+        if (tiporeg==1)                                               // registro del 4to byte
+            printf("L");
+        else if (tiporeg==2)                                          // registro del 3 byte
+            printf("H");
+        else                                                          //registro de 2 bytes
+            printf("X");
         }
-        else{
-            if (tiporeg==0)
-                printf("E");
-            printf ("%X",(op & 0x0F));   
-            if (tiporeg==1)                                               // registro del 4to byte
-                printf("L");
-            else if (tiporeg==2)                                          // registro del 3 byte
-                printf("H");
-            else                                                          //registro de 2 bytes
-                printf("X");
-        }
-    }
     else{                                                       //Indirecto
         printf("[E%XX+ %d]",op & 0x0F,op& 0xFF0);
     }
@@ -960,11 +954,11 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=25;//cantidad de sectores
+    aux=128;//cantidad de sectores
     aux<<=8;
-    aux|=24;//cantidad de cabezas
+    aux|=128;//cantidad de cabezas
     aux<<=8;
-    aux|=23;//cantidad de cilindros
+    aux|=128;//cantidad de cilindros
     aux<<=8;
     aux|=1;//tipo
     fwrite(&aux,sizeof(aux),1,arch);
@@ -974,6 +968,7 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(int),118,arch);
     fclose(arch);
     discos[j]=discoaux;
+    
 }
 
 void LeeDiscos(){
@@ -986,10 +981,8 @@ void LeeDiscos(){
     discos= (Tdisco*)malloc(CantDiscos*sizeof(Tdisco));
     while (j<CantDiscos && j<255){
         arch=fopen(_argv[i],"rb");
-        if (arch==NULL){
+        if (arch==NULL)
             CreaDisco(i,j);
-            arch=fopen(_argv[i],"rb");
-        }
         (discos+j)->estado=0;
         fseek(arch,32,SEEK_SET);
         fread(&aux,sizeof(int),1,arch);//El menos significativo es el primero en leer
@@ -1002,3 +995,6 @@ void LeeDiscos(){
         fclose(arch);
     }
 }
+//pepe
+//pepe
+//pepe
