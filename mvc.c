@@ -229,7 +229,7 @@ int checkStringAlfa(char* cadena){ //mira si el string es solo de caracteres alf
 int checkFormatoSimbolo(char* cadena){//check if cumple con formato de un simbolo
     char cadenaAux[largoSimbolo];
     int contieneRegistro = 0, largoCadena = strlen(cadena); 
-    if (largoCadena <= 15 && largoCadena >= 3 && isalpha(cadena[0])){
+    if (largoCadena <= 30 && largoCadena >= 3 && isalpha(cadena[0])){
         memcpy(cadenaAux, cadena, 2);
         cadenaAux[2] = '\0';
         if (checkRegistro(cadenaAux)) // check si contiene resgistro largo 2
