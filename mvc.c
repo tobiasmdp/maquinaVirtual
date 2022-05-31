@@ -114,7 +114,7 @@ int main(int argc, char const *argv[]){
                 else if (mnemonico >= 0xF0 && mnemonico <= 0xFF){ //1 OP 
                     instruccion = mnemonico<<24;
                     tipoOperando1 = getTipoOperando(lineaParseada[2]);
-                    instruccion |= tipoOperando1<<22;
+                    instruccion |= (tipoOperando1)<<22;
                     operando1 = getOperando(tipoOperando1, lineaParseada[2]);
                     operando1<<16;
                     operando1>>16;
@@ -229,7 +229,7 @@ int checkStringAlfa(char* cadena){ //mira si el string es solo de caracteres alf
 int checkFormatoSimbolo(char* cadena){//check if cumple con formato de un simbolo
     char cadenaAux[largoSimbolo];
     int contieneRegistro = 0, largoCadena = strlen(cadena); 
-    if (largoCadena <= 10 && largoCadena >= 3 && isalpha(cadena[0])){
+    if (largoCadena <= 15 && largoCadena >= 3 && isalpha(cadena[0])){
         memcpy(cadenaAux, cadena, 2);
         cadenaAux[2] = '\0';
         if (checkRegistro(cadenaAux)) // check si contiene resgistro largo 2
