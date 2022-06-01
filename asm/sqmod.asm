@@ -30,3 +30,4 @@ fin:    sys     %F
         mov     edx, 4
         sys     2    
 
+stop

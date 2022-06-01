@@ -24,3 +24,4 @@
  mov ecx, 10
  mov edx, 0
  sys 2     
+ stop
