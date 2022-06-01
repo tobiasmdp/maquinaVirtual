@@ -11,7 +11,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-            "args": ["bin/strings.mv2","-b", "-d"],
+            "args": ["bin/discos.mv2","-b", "-d","vdd/random.vdd","vdd/clone.vdd"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

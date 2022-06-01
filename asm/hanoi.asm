@@ -1,4 +1,4 @@
-\\STACK 100
+\\STACK 5000
 titulo equ  "--- TORRE DE HANOI ---"
 msg    equ  "Ingrese la cantidad de discos:"
 strA  equ "Torre A" 

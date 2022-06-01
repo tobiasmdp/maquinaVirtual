@@ -1,4 +1,4 @@
-\\EXTRA 15
+\\EXTRA 200
 ;Inicializa HEAP (manual)
         ldh     2
         ldl     0
