@@ -276,9 +276,9 @@ void Extractor(int TipoOp, int operando ,int **A,int *C, int memoria[],int regis
                     offset<<=24;
                     offset>>=24;
                     inicioReg=low(registro[Segmento]);// Direccion absoluta de donde arranca el registro asociado en la parte alta del registro del operando
-                    finReg=inicioReg+high(registro[high(Segmento)]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
+                    finReg=inicioReg+high(registro[Segmento]);// Direccion absoluta de donde termina el registro asociado en la parte alta del registro del operando
                     direccion=inicioReg+low(registro[numreg])+offset;
-                    if(direccion>inicioReg && direccion<finReg)
+                    if(direccion>=inicioReg && direccion<=finReg)
                         *A=&memoria[direccion];
                     else{
                         printf("Segmentation fault -> Linea: %d", low(registro[IP]));
@@ -366,7 +366,7 @@ void SLEN(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int 
         B++;
         auxB=get_value(B,mascaraB);
     }
-    set_value(A,i,mascaraA);
+    set_value(A,i-1,mascaraA);
 }
 
 void SMOV(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int registro[]){
@@ -486,10 +486,11 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         indice=dirmemoria(registro[EDX],registro,memoria);
         if ((registro[EAX]&0x0800)>>11==0)
             printf("[%04d]: ",(indice+i));
-            scanf("%s",caracter);
+            fflush(stdin);
+            fgets(caracter,10,stdin);
             i=0;
-            if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento]) ){
-                 printf("Segmentation fault -> Linea: %d", low(registro[IP]));
+            if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento])){
+                printf("Segmentation fault -> Linea: %d", low(registro[IP]));
                 exit(EXIT_FAILURE);
             }
             while (i<strlen(caracter) && i<registro[ECX]&REG_MASK){
@@ -500,7 +501,7 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
     }
     else if (Sys == 4){ //String write
         indice=dirmemoria(registro[EDX],registro,memoria);
-        if (indice+(registro[ECX]&REG_MASK)>low(registro[segmento])+ high(registro[segmento]) ){
+        if (indice+strlen(caracter)+1>low(registro[segmento])+ high(registro[segmento])){
             printf("Segmentation fault -> Linea: %d", low(registro[IP]));
             exit(EXIT_FAILURE);
         }
@@ -528,7 +529,6 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         system("cls");    
     else if (Sys==13){//Trabajos con disco
         aux=get_value(&registro[EAX],HIGH_MASK);
-        indice=dirmemoria(registro[EBX],registro,memoria);
         CantSectores=get_value(&registro[EAX],LOW_MASK);
         numCil=get_value(&registro[ECX],HIGH_MASK);
         numCab=get_value(&registro[ECX],LOW_MASK);
