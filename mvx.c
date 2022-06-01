@@ -540,11 +540,11 @@ void SYS(int *A,int mascaraA,int *B,int C,int D,int mascaraB,int memoria[],int r
         }
         else if(aux==8){//Obtener los parametros del disco
                 set_value(registro+ECX,(discos+numDisco)->cantCil,HIGH_MASK); //se carga en CH
-                printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+ECX,HIGH_MASK),numDisco);
+                printf("%d cantidad de cilindros en el disco %d \n",(discos+numDisco)->cantCil,numDisco);
                 set_value(registro+ECX,(discos+numDisco)->cantCab,LOW_MASK);  //se carga en CL                            printf("%d cantidad de cilindros en el disco %d \n",get_value(registro+12,LOW_MASK),numDisco);
-                printf("%d cantidad de cabezas en el disco %d \n",get_value(registro+ECX,LOW_MASK),numDisco);
+                printf("%d cantidad de cabezas en el disco %d \n",(discos+numDisco)->cantCab,numDisco);
                 set_value(registro+EDX,(discos+numDisco)->cantSector,HIGH_MASK); //se carga en DH
-                printf("%d cantidad de sector en el disco %d \n",get_value(registro+EDX,HIGH_MASK),numDisco);
+                printf("%d cantidad de sector en el disco %d \n",(discos+numDisco)->cantSector,numDisco);
                 set_value(registro+EAX,0,HIGH_MASK);//seteo el AH en exito
                 discos[numDisco].estado=0;
             } 
@@ -981,11 +981,11 @@ void CreaDisco(int i, int j){
     fwrite(&aux,sizeof(aux),1,arch);
     aux=0x08050301;//hora creacion
     fwrite(&aux,sizeof(aux),1,arch);
-    aux=127;//cantidad de sectores
+    aux=128;//cantidad de sectores
     aux<<=8;
-    aux|=127;//cantidad de cabezas
+    aux|=128;//cantidad de cabezas
     aux<<=8;
-    aux|=127;//cantidad de cilindros
+    aux|=128;//cantidad de cilindros
     aux<<=8;
     aux|=1;//tipo
     fwrite(&aux,sizeof(aux),1,arch);
